@@ -105,3 +105,18 @@ body {
 .ex-select { width: 100%; margin-bottom: 12px; }
 .chart-note { margin: 10px 0 0; font-size: 12px; }
 .pr-value { color: var(--fg); }
+
+/* Balance */
+.bal-sub { margin: -4px 0 8px; font-size: 13px; }
+.bal-verdict { margin: 10px 0 0; font-weight: 600; font-size: 15px; text-align: center; }
+.bal-list { display: flex; flex-direction: column; gap: 10px; }
+.bal-row { display: grid; grid-template-columns: 110px 1fr 36px; gap: 10px; align-items: center; font-size: 15px; }
+.bal-name { color: var(--fg-2); }
+.bal-track { position: relative; height: 10px; border-radius: 999px; background: var(--fill); overflow: hidden; }
+.bal-band { position: absolute; top: 0; bottom: 0; background: var(--separator); }
+.bal-fill { position: relative; height: 100%; border-radius: 999px; transition: width 0.6s var(--lg-ease); }
+.bal-low { background: var(--warn); }
+.bal-ok { background: var(--ok); }
+.bal-high { background: var(--accent); }
+.bal-val { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bal-warn { color: var(--warn); }

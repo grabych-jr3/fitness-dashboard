@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import TrendChart from '../charts/TrendChart.tsx'
-import Page, { Placeholder } from '../components/Page.tsx'
+import Page from '../components/Page.tsx'
+import BalanceTab from '../progress/BalanceTab.tsx'
 import StrengthTab from '../progress/StrengthTab.tsx'
 import { useScans, useSettings, useWeightSeries } from '../data/hooks.ts'
 import type { InbodyScan, Segments } from '../data/types.ts'
@@ -130,7 +131,7 @@ export default function Progress() {
       />
       {tab === 'body' && <BodyTab />}
       {tab === 'strength' && <StrengthTab />}
-      {tab === 'balance' && <Placeholder stage={7} text="Підходи за тиждень на кожну групу м'язів і що відстає." />}
+      {tab === 'balance' && <BalanceTab />}
     </Page>
   )
 }
