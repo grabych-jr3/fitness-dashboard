@@ -4,6 +4,8 @@ import { BackupValidationError, backupFileName, exportAllAsBlob, importAll, read
 import { updateSettings, useSettings } from '../data/hooks.ts'
 import { Button, Glass, Segmented, Sheet, useTheme, type ThemeMode } from '../glass'
 import { fmtDate } from '../lib/format.ts'
+import { WEEKDAYS } from '../progress/activity.ts'
+import '../progress/activity.css'
 import AiSettings from '../settings/AiSettings.tsx'
 import ExerciseEditor from '../settings/ExerciseEditor.tsx'
 import TemplatesEditor from '../settings/TemplatesEditor.tsx'
@@ -163,6 +165,29 @@ export default function Settings() {
           </div>
           <NumberSetting label="Відпочинок між підходами" value={settings.restSeconds} min={15} max={600} step={5} unit="сек" onSave={(restSeconds) => updateSettings({ restSeconds })} />
         </div>
+      </Glass>
+
+      <Glass padded>
+        <h2 className="lg-h2">Дні тренувань</h2>
+        <div className="day-chips" role="group" aria-label="Дні тренувань">
+          {WEEKDAYS.map((d, i) => {
+            const on = settings.trainingDays?.includes(i) ?? false
+            return (
+              <button
+                key={d}
+                type="button"
+                className="day-chip"
+                aria-pressed={on}
+                onClick={() => updateSettings({ trainingDays: on ? settings.trainingDays!.filter((x) => x !== i) : [...(settings.trainingDays ?? []), i].sort((a, b) => a - b) })}
+              >
+                {d}
+              </button>
+            )
+          })}
+        </div>
+        <p className="lg-muted se-hint" style={{ marginTop: 8 }}>
+          У ці дні на «Огляді» з'явиться нагадування з наступним шаблоном (A → B → C). Кількість днів — ціль для серії у Прогрес → Звички. Нагадування показуються в самому застосунку: iPhone не дає вебзастосункам ставити сповіщення без сервера.
+        </p>
       </Glass>
 
       <AiSettings />

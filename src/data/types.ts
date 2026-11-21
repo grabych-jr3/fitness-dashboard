@@ -152,6 +152,10 @@ export interface Settings {
   aiKey?: string
   /** Gemini model id, e.g. 'gemini-3.8-flash'. */
   aiModel?: string
+  /** planned training weekdays, 0 = Monday … 6 = Sunday */
+  trainingDays?: number[]
+  /** 'YYYY-MM' of the month whose InBody reminder was dismissed */
+  inbodyReminderDismissed?: string
 }
 
 /** Point of the merged weight chart. */

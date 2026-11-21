@@ -11,6 +11,7 @@ import { weekRange } from '../data/dates.ts'
 import { useScans, useSettings, useWeightSeries } from '../data/hooks.ts'
 import { AnimatedNumber, Button, Glass } from '../glass'
 import { diff, fmt, fmtDate } from '../lib/format.ts'
+import { TrainingTodayReminder } from '../workout/Reminders.tsx'
 
 function useThisWeek() {
   return useLiveQuery(async () => {
@@ -49,6 +50,7 @@ export default function Overview() {
 
   return (
     <Page title="Огляд">
+      <TrainingTodayReminder />
       {backupDays > 30 && scansCount > 1 && (
         <Glass padded small className="backup-nudge">
           <span>{settings.lastBackupAt ? 'Бекапу не було понад місяць.' : 'Ти ще не робив бекап даних.'}</span>

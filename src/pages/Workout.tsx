@@ -10,6 +10,7 @@ import { Button, Glass, Sheet } from '../glass'
 import { addExercise, discardWorkout, exerciseOrder, finishWorkout, startWorkout } from '../workout/actions.ts'
 import ExerciseBlock from '../workout/ExerciseBlock.tsx'
 import FinishSummary from '../workout/FinishSummary.tsx'
+import { InbodyReminder } from '../workout/Reminders.tsx'
 import ExercisePicker from '../workout/ExercisePicker.tsx'
 import HistoryList from '../workout/HistoryList.tsx'
 import { fmtClock, stopRest } from '../workout/restTimer.ts'
@@ -46,6 +47,7 @@ function ActiveWorkout({ workout, onFinished }: { workout: WorkoutT; onFinished:
   if (!sets || !exercises) return null
   return (
     <>
+      <InbodyReminder />
       <Glass padded className="wo-head">
         <div className="lg-row">
           <div>
@@ -131,6 +133,7 @@ export default function Workout() {
   return (
     <Page title="Тренування">
       {summarySheet}
+      <InbodyReminder />
       {(templates ?? []).map((t) => (
         <div key={t.id} className="tpl-card-wrap">
           <Glass padded interactive as="button" type="button" className="tpl-card tpl-card--editable" onClick={() => startWorkout(t.id)}>

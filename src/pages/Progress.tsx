@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import TrendChart from '../charts/TrendChart.tsx'
 import Page from '../components/Page.tsx'
+import ActivityTab from '../progress/ActivityTab.tsx'
 import BalanceTab from '../progress/BalanceTab.tsx'
 import SegmentTrends from '../progress/SegmentTrends.tsx'
 import StrengthTab from '../progress/StrengthTab.tsx'
@@ -9,7 +10,7 @@ import type { InbodyScan, Segments } from '../data/types.ts'
 import { Glass, Segmented } from '../glass'
 import { diff, fmt, fmtDate, fmtDelta } from '../lib/format.ts'
 
-type Tab = 'body' | 'strength' | 'balance'
+type Tab = 'body' | 'strength' | 'balance' | 'activity'
 
 const SEGMENTS: { key: keyof Segments; label: string }[] = [
   { key: 'la', label: 'Ліва рука' },
@@ -130,12 +131,14 @@ export default function Progress() {
           { value: 'body', label: 'Тіло' },
           { value: 'strength', label: 'Сила' },
           { value: 'balance', label: 'Баланс' },
+          { value: 'activity', label: 'Звички' },
         ]}
       />
       <div key={tab} className="lg-stack tab-anim">
       {tab === 'body' && <BodyTab />}
       {tab === 'strength' && <StrengthTab />}
       {tab === 'balance' && <BalanceTab />}
+      {tab === 'activity' && <ActivityTab />}
       </div>
     </Page>
   )
