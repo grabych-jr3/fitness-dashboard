@@ -101,7 +101,12 @@
 /* ── Living background ─────────────────────────────────────────────── */
 .lg-bg {
   position: fixed;
-  inset: 0;
+  /* Reach past every edge: on iPhone the layout viewport can be shorter than the
+     screen (home indicator, rubber-band scrolling), which used to reveal a pale strip. */
+  top: -120px;
+  left: 0;
+  right: 0;
+  bottom: -240px;
   z-index: -1;
   overflow: hidden;
   background: var(--bg);
