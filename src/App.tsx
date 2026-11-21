@@ -6,6 +6,7 @@ import Overview from './pages/Overview.tsx'
 import Progress from './pages/Progress.tsx'
 import Settings from './pages/Settings.tsx'
 import Workout from './pages/Workout.tsx'
+import RestTimer from './workout/RestTimer.tsx'
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      <RestTimer />
       <TabBar />
     </div>
   )
