@@ -5,10 +5,10 @@ import { db } from '../data/db.ts'
 import { useExercises, useSettings, useTemplates } from '../data/hooks.ts'
 import type { Exercise, Workout as WorkoutT, WorkoutSet } from '../data/types.ts'
 import { Button, Glass, Sheet } from '../glass'
-import { fmtDate } from '../lib/format.ts'
-import { addExercise, deleteWorkout, discardWorkout, exerciseOrder, finishWorkout, startWorkout } from '../workout/actions.ts'
+import { addExercise, discardWorkout, exerciseOrder, finishWorkout, startWorkout } from '../workout/actions.ts'
 import ExerciseBlock from '../workout/ExerciseBlock.tsx'
 import ExercisePicker from '../workout/ExercisePicker.tsx'
+import HistoryList from '../workout/HistoryList.tsx'
 import { fmtClock, stopRest } from '../workout/restTimer.ts'
 
 function useActiveWorkout() {
@@ -106,61 +106,6 @@ function ActiveWorkout({ workout }: { workout: WorkoutT }) {
   )
 }
 
-function History() {
-  const items = useLiveQuery(async () => {
-    const workouts = (await db.workouts.toArray()).filter((w) => w.finishedAt).sort((a, b) => b.startedAt - a.startedAt).slice(0, 10)
-    const templates = new Map((await db.templates.toArray()).map((t) => [t.id!, t.name]))
-    return Promise.all(
-      workouts.map(async (w) => ({
-        w,
-        name: (w.templateId && templates.get(w.templateId)) || 'Вільне тренування',
-        sets: await db.sets.where('workoutId').equals(w.id!).count(),
-        minutes: Math.round((w.finishedAt! - w.startedAt) / 60000),
-      })),
-    )
-  }, [])
-  const [del, setDel] = useState<number | null>(null)
-
-  if (!items?.length) return null
-  return (
-    <Glass padded>
-      <h2 className="lg-h2">Історія</h2>
-      <div className="scan-list">
-        {items.map(({ w, name, sets, minutes }) => (
-          <div key={w.id} className="scan-row">
-            <span>
-              {fmtDate(w.date, 'full')} · {name}
-            </span>
-            <span className="lg-muted">
-              {sets} підх. · {minutes} хв{' '}
-              <button type="button" className="ex-link ex-link--muted" aria-label="Видалити тренування" onClick={() => setDel(w.id!)}>
-                ✕
-              </button>
-            </span>
-          </div>
-        ))}
-      </div>
-      <Sheet open={del !== null} onClose={() => setDel(null)} title="Видалити тренування?">
-        <div className="lg-stack">
-          <Button
-            variant="primary"
-            block
-            onClick={async () => {
-              if (del !== null) await deleteWorkout(del)
-              setDel(null)
-            }}
-          >
-            Видалити
-          </Button>
-          <Button block onClick={() => setDel(null)}>
-            Ні
-          </Button>
-        </div>
-      </Sheet>
-    </Glass>
-  )
-}
-
 export default function Workout() {
   const active = useActiveWorkout()
   const templates = useTemplates()
@@ -201,7 +146,7 @@ export default function Workout() {
       <Button block onClick={() => startWorkout()}>
         Вільне тренування
       </Button>
-      <History />
+      <HistoryList />
     </Page>
   )
 }
