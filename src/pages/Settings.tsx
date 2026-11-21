@@ -170,7 +170,26 @@ export default function Settings() {
       <TemplatesEditor />
       <ExerciseEditor />
 
-      <p className="lg-muted version">Версія {__APP_VERSION__}</p>
+      <p className="lg-muted version">
+        Версія {__APP_VERSION__}
+        <br />
+        <DisplayInfo />
+      </p>
     </Page>
   )
+}
+
+/** Tiny diagnostics line (screen mode and safe areas) to help track layout issues on a real phone. */
+function DisplayInfo() {
+  const [info, setInfo] = useState('')
+  useEffect(() => {
+    const probe = document.createElement('div')
+    probe.style.cssText = 'position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)'
+    document.body.append(probe)
+    const cs = getComputedStyle(probe)
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone
+    setInfo(`${standalone ? 'застосунок' : 'браузер'} · екран ${innerWidth}×${innerHeight} · відступи ${parseInt(cs.paddingTop)}/${parseInt(cs.paddingBottom)}`)
+    probe.remove()
+  }, [])
+  return <span className="display-info">{info}</span>
 }
