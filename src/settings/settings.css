@@ -1,0 +1,135 @@
+/* Template and exercise editors (Settings) + the «Редагувати» link on workout template cards. */
+
+.se-section { scroll-margin-top: calc(env(safe-area-inset-top) + 12px); }
+.se-head { margin-bottom: 4px; }
+.se-head .lg-h2 { margin: 0; }
+
+/* Tappable list rows (template list, exercise list) */
+.se-row-btn {
+  appearance: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 0;
+  border-top: 1px solid var(--separator);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.se-row-btn:first-child { border-top: 0; }
+.se-row-btn:active { opacity: 0.6; }
+.se-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 16px; font-weight: 600; }
+.se-row-sub { font-size: 13px; font-weight: 500; color: var(--muted); }
+.se-chevron { color: var(--muted); font-size: 20px; line-height: 1; flex: none; }
+.se-empty { margin: 4px 0 0; font-size: 14px; }
+
+/* Exercise list rows: main button + hide/show link */
+.se-ex-row { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--separator); }
+.se-ex-row:first-child { border-top: 0; }
+.se-ex-row .se-row-btn { border-top: 0; flex: 1; min-width: 0; }
+.se-ex-row .ex-link { flex: none; padding: 10px 0 10px 6px; }
+.se-search { width: 100%; margin: 6px 0 4px; }
+
+/* Template editor sheet */
+.se-items { display: flex; flex-direction: column; gap: 10px; }
+.se-item { background: var(--fill); border-radius: 18px; padding: 10px 10px 12px 12px; }
+.se-item-head { display: flex; align-items: center; gap: 8px; }
+.se-item-num {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+.se-item-name { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.se-item-hidden { font-size: 12px; font-weight: 500; color: var(--muted); }
+.se-item-btns { flex: none; display: flex; gap: 6px; }
+.se-item-params { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin-top: 10px; align-items: end; }
+.se-param { display: flex; flex-direction: column; gap: 4px; }
+.se-param-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+
+.se-icon {
+  appearance: none;
+  border: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--glass-tint-strong);
+  color: var(--fg);
+  cursor: pointer;
+  transition: transform 0.3s var(--lg-spring), opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.se-icon:active:not(:disabled) { transform: scale(0.88); }
+.se-icon:disabled { opacity: 0.3; cursor: default; }
+.se-icon--danger { color: var(--bad); }
+.se-icon svg { width: 20px; height: 20px; }
+
+.se-stepper { display: flex; align-items: center; gap: 4px; }
+.se-stepper-val { min-width: 30px; text-align: center; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.se-reps { display: flex; align-items: center; gap: 6px; }
+.se-reps .set-input { width: 56px; height: 40px; padding: 0 4px; background: var(--glass-tint-strong); }
+.se-dash { color: var(--muted); font-weight: 600; }
+
+.se-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.se-danger { align-self: center; }
+.se-confirm-text { margin: 0; text-align: center; font-size: 15px; line-height: 1.4; }
+
+/* Muscle group chips */
+.se-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.se-chip {
+  appearance: none;
+  border: 1.5px solid transparent;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  background: var(--fill);
+  color: var(--fg-2);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.3s var(--lg-spring);
+  -webkit-tap-highlight-color: transparent;
+}
+.se-chip:active { transform: scale(0.93); }
+.se-chip--primary { background: var(--accent); color: #fff; }
+.se-chip--secondary {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  border-style: dashed;
+  color: var(--accent);
+}
+.se-chip-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; opacity: 0.85; }
+.se-hint { margin: 0; font-size: 13px; font-weight: 500; line-height: 1.4; }
+.se-summary { margin: 0; font-size: 14px; line-height: 1.4; color: var(--fg-2); }
+.se-warn { margin: 0; color: var(--warn); font-size: 13px; line-height: 1.35; }
+
+/* Workout page: template card + edit link */
+.tpl-card-wrap { position: relative; }
+.glass.tpl-card--editable { padding-bottom: 44px; }
+.tpl-edit {
+  position: absolute;
+  right: 18px;
+  bottom: 8px;
+  padding: 8px 4px;
+  font-size: 14px;
+  text-decoration: none;
+}
