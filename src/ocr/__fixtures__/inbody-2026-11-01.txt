@@ -1,0 +1,39 @@
+TP100-1.3 115200
+InBody170 11/01/26 10:56
+ID :
+Gender: Male Age :20
+Height : 192.0 cm Weight: 77.4 kg
+Body Composition Analysis
+Weight 77.4 kg (68.9~93.3)
+Muscle 41.4 kg (35.1~42.9)
+Fat 5.6 kg (9.7~19.5)
+TBW 52.8 l (45.6~55.8)
+FFM 71.8 kg (62.0~75.8)
+Obesity Analysis
+BMI 21.0 kg/m2 (18.5~25.0)
+PBF 7.2 % (10.0~20.0)
+WHR 0.89 (0.80~0.90)
+Visceral Fat 1 level (1~9)
+BMR 1921 kcal (1649~1933)
+Segmental Lean
+Lean Mass(kg) Evaluation
+Right Arm 4.61 Over
+Left Arm 4.77 Over
+Trunk 34.5 Over
+Right Leg 11.91 Over
+Left Leg 11.92 Over
+Segmental Fat
+PBF(%) Fat Mass(kg) Evaluation
+Right Arm 2.2 0.1 Under
+Left Arm 2.1 0.1 Under
+Trunk 5.3 2.1 Under
+Right Leg 7.9 1.1 Under
+Left Leg 7.8 1.1 Under
+* Segmental Fat is estimated.
+Muscle - Fat Control
+Muscle 0.0 kg Fat +3.7 kg
+Fitness Score 79 Points
+Impedance
+RA LA TR RL LL
+20 276.6 267.4 26.3 288.9 287.4
+100 243.2 237.0 22.6 249.5 248.9
