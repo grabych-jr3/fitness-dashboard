@@ -16,7 +16,7 @@ export default function App() {
     document.getElementById('app-scroll')?.scrollTo({ top: 0 })
   }, [location.pathname])
   return (
-    <div className="app">
+    <div className="app" id="app-root">
       <Background />
       <div className="status-blur" aria-hidden="true" />
       <div id="app-scroll" className="app-scroll">

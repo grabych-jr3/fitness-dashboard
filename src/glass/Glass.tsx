@@ -1,4 +1,4 @@
-import { useRef, type ComponentPropsWithoutRef, type ElementType, type PointerEvent, type ReactNode } from 'react'
+import { useCallback, useRef, type ComponentPropsWithoutRef, type ElementType, type PointerEvent, type ReactNode, type Ref } from 'react'
 
 type GlassProps<T extends ElementType> = {
   as?: T
@@ -14,6 +14,7 @@ type GlassProps<T extends ElementType> = {
   /** Real SVG refraction where the browser supports it (Chromium). */
   refract?: boolean
   className?: string
+  ref?: Ref<HTMLDivElement>
 } & Omit<ComponentPropsWithoutRef<T>, 'as' | 'children' | 'className'>
 
 /** A Liquid Glass surface. Every card, bar and sheet in the app is built from it. */
@@ -26,10 +27,19 @@ export default function Glass<T extends ElementType = 'div'>({
   interactive,
   refract,
   className,
+  ref: outerRef,
   ...rest
 }: GlassProps<T>) {
   const Tag = (as ?? 'div') as ElementType
-  const ref = useRef<HTMLElement>(null)
+  const ref = useRef<HTMLElement | null>(null)
+  const setRef = useCallback(
+    (el: HTMLElement | null) => {
+      ref.current = el
+      if (typeof outerRef === 'function') outerRef(el as HTMLDivElement | null)
+      else if (outerRef) (outerRef as { current: HTMLElement | null }).current = el
+    },
+    [outerRef],
+  )
 
   const moveHighlight = (e: PointerEvent<HTMLElement>) => {
     const el = ref.current
@@ -52,7 +62,7 @@ export default function Glass<T extends ElementType = 'div'>({
     .join(' ')
 
   return (
-    <Tag ref={ref} className={cls} onPointerDown={interactive ? moveHighlight : undefined} onPointerMove={interactive ? moveHighlight : undefined} {...rest}>
+    <Tag ref={setRef} className={cls} onPointerDown={interactive ? moveHighlight : undefined} onPointerMove={interactive ? moveHighlight : undefined} {...rest}>
       {children}
     </Tag>
   )

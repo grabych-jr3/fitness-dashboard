@@ -106,7 +106,7 @@
 
 /* ── Living background ─────────────────────────────────────────────── */
 .lg-bg {
-  position: fixed;
+  position: absolute;
   /* Reach past every edge: on iPhone the layout viewport can be shorter than the
      screen (home indicator, rubber-band scrolling), which used to reveal a pale strip. */
   top: -120px;
@@ -230,7 +230,7 @@
 
 /* ── Tab bar (floating, iOS 26 style) ──────────────────────────────── */
 .lg-tabbar {
-  position: fixed;
+  position: absolute;
   left: 50%;
   transform: translateX(-50%);
   bottom: var(--tabbar-bottom);
@@ -309,24 +309,26 @@
 
 /* ── Bottom sheet ──────────────────────────────────────────────────── */
 .lg-sheet-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 40;
+  /* reach into the iOS bottom strip too */
+  bottom: -120px;
   background: rgba(0, 0, 0, 0.25);
-  animation: lg-fade 0.25s var(--lg-ease);
+  will-change: opacity;
 }
 .lg-sheet {
-  position: fixed;
+  position: absolute;
   left: 8px;
   right: 8px;
   bottom: max(8px, var(--safe-bottom));
   z-index: 41;
-  max-height: calc(100dvh - env(safe-area-inset-top) - 40px);
+  max-height: calc(100% - env(safe-area-inset-top) - 24px);
   overflow: auto;
   overscroll-behavior: contain;
   border-radius: 34px;
   padding: 10px 18px 20px;
-  animation: lg-sheet-in 0.5s var(--lg-spring);
+  will-change: transform;
 }
 .lg-sheet-grabber { width: 38px; height: 5px; border-radius: 3px; background: var(--separator); margin: 0 auto 10px; }
 .lg-sheet-title { font: 600 20px/1.2 var(--font-display); margin: 4px 0 14px; text-align: center; }
@@ -334,11 +336,7 @@
 @keyframes lg-fade-out { to { opacity: 0; } }
 @keyframes lg-sheet-in { from { transform: translateY(110%); } }
 @keyframes lg-sheet-out { to { transform: translateY(110%); } }
-.lg-sheet-backdrop.is-closing { animation: lg-fade-out 0.3s var(--lg-ease) forwards; }
-.lg-sheet.is-closing { animation: lg-sheet-out 0.3s cubic-bezier(0.4, 0, 1, 1) forwards; }
-.lg-sheet.is-dragging { animation: none; transition: none; }
-.lg-sheet:not(.is-dragging):not(.is-closing) { transition: transform 0.35s var(--lg-spring); }
-.lg-sheet-handle { touch-action: none; cursor: grab; padding-top: 2px; }
+.lg-sheet-handle { cursor: grab; padding-top: 2px; }
 
 /* ── Motion: pages, lists, presses ─────────────────────────────────── */
 @keyframes lg-page-in { from { opacity: 0; transform: translateY(14px) scale(0.985); filter: blur(6px); } }
@@ -369,7 +367,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lg-sheet, .lg-sheet-backdrop, .lg-sheet.is-closing, .lg-sheet-backdrop.is-closing { animation: none; }
+  .lg-sheet, .lg-sheet-backdrop { animation: none; }
   .lg-tab-indicator, .lg-seg-thumb { transition: none; }
 }
 

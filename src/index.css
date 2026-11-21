@@ -11,6 +11,14 @@ html {
 /* App shell: the document itself never scrolls (no iOS rubber-band, no jumping
    fixed bars). Content scrolls inside .app-scroll; the tab bar sits outside it. */
 html, body, #root { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
+
+/* iOS 26 home-screen apps report a viewport ~62px shorter than the screen (status-bar
+   bug) and clip position:fixed to it, leaving a bare strip at the bottom. The page itself
+   is still painted full-screen, so the shell is sized with 100vh (the real screen height
+   there) and everything inside is positioned absolutely within it. */
+@media (display-mode: standalone) {
+  html, body, #root { height: 100vh; }
+}
 html { background: var(--bg); }
 
 body {
@@ -19,10 +27,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.app { height: 100%; }
+.app { position: relative; height: 100%; overflow: hidden; }
 
 .app-scroll {
-  position: fixed;
+  position: absolute;
   inset: 0;
   overflow-x: hidden;
   overflow-y: auto;
@@ -40,7 +48,7 @@ body {
 
 /* Frosted strip behind the status bar so scrolled content doesn't clash with the clock. */
 .status-blur {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -123,7 +131,7 @@ body {
 .picker-groups { font-size: 13px; }
 
 /* Rest timer */
-.rest-pill { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar-bottom) + var(--tabbar-height) + 12px); z-index: 30; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 18px; border-radius: 999px; animation: lg-sheet-in 0.45s var(--lg-spring); }
+.rest-pill { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar-bottom) + var(--tabbar-height) + 12px); z-index: 30; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 18px; border-radius: 999px; animation: lg-sheet-in 0.45s var(--lg-spring); }
 .rest-pill--done { background: color-mix(in srgb, var(--ok) 70%, transparent); color: #fff; }
 .rest-label { font-size: 14px; font-weight: 600; }
 .rest-time { font: 600 22px/1 var(--font-display); font-variant-numeric: tabular-nums; min-width: 56px; }
