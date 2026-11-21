@@ -1,0 +1,18 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+.vite/
+*.local
+.env
+.env.*
+
+# Private test data (photos of InBody printouts, personal exports)
+fixtures/private/
+*.backup.json
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
