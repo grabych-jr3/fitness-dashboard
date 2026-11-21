@@ -10,12 +10,15 @@ export default function BarChart({
   label,
   tip,
   height = 200,
+  minLabelGap = 52,
 }: {
   labels: string[]
   values: number[]
   label: string
   tip: (i: number) => { title: string; lines: string[] }
   height?: number
+  /** minimum px between x labels before some are skipped */
+  minLabelGap?: number
 }) {
   const [ref, width] = useWidth<HTMLDivElement>()
   const [hover, setHover] = useState<number | null>(null)
@@ -28,7 +31,7 @@ export default function BarChart({
   const band = (W - padL - padR) / Math.max(1, values.length)
   const bw = Math.min(28, band * 0.62)
   const y = linear(d.min, d.max, height - padB, padT)
-  const every = Math.ceil(values.length / Math.max(1, Math.floor((W - padL) / 52)))
+  const every = Math.ceil(values.length / Math.max(1, Math.floor((W - padL) / minLabelGap)))
 
   const onMove = (e: PointerEvent<SVGSVGElement>) => {
     const r = e.currentTarget.getBoundingClientRect()

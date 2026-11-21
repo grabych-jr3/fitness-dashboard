@@ -1,0 +1,31 @@
+.heat { width: 100%; overflow: hidden; }
+.heat svg { display: block; }
+.heat-cell { cursor: pointer; transition: fill 0.2s; }
+.heat-0 { fill: color-mix(in srgb, var(--muted) 16%, transparent); }
+.heat-1 { fill: color-mix(in srgb, var(--accent) 70%, transparent); }
+.heat-2 { fill: var(--accent); }
+.heat-today { stroke: var(--fg); stroke-width: 1.5; }
+.heat-picked { stroke: var(--accent-2); stroke-width: 2; }
+.heat-picked-text { font-size: 13px; margin: 6px 0 0; min-height: 18px; }
+.act-streak { display: flex; gap: 10px; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--separator); font-size: 15px; }
+.act-fire { font-size: 28px; }
+.act-week { font-size: 13px; margin-top: 2px; }
+.act-period { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 10px 0 4px; font-weight: 600; font-size: 15px; text-transform: none; }
+.act-arrow { all: unset; cursor: pointer; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; font-size: 22px; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.act-arrow:disabled { opacity: 0.3; cursor: default; }
+.act-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+.act-stats > div { display: flex; flex-direction: column; gap: 2px; padding: 12px; border-radius: 16px; background: color-mix(in srgb, var(--muted) 10%, transparent); }
+.act-stats b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.act-stats .lg-muted { font-size: 13px; }
+.act-sub { font-size: 15px; margin: 8px 0 4px; }
+.reminder { display: flex; flex-direction: column; gap: 10px; }
+.reminder-row { display: flex; gap: 10px; align-items: flex-start; }
+.reminder-icon { font-size: 24px; line-height: 1; }
+.reminder-text { flex: 1; font-size: 15px; }
+.reminder-text b { display: block; margin-bottom: 2px; }
+.reminder-actions { display: flex; gap: 8px; }
+.reminder-actions > * { flex: 1; }
+.day-chips { display: flex; gap: 6px; }
+.day-chip { all: unset; cursor: pointer; flex: 1; text-align: center; padding: 9px 0; border-radius: 12px; font-weight: 600; font-size: 14px; color: var(--fg-2); background: color-mix(in srgb, var(--muted) 14%, transparent); transition: background 0.2s, color 0.2s; }
+.day-chip[aria-pressed='true'] { color: #fff; background: var(--accent); }
+.backup-nudge .ex-link { white-space: nowrap; }

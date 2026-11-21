@@ -195,7 +195,9 @@ const validators: Record<keyof BackupTables, (r: Rec) => boolean> = {
     isNum(r.weeklySetTarget.max) &&
     (r.theme === 'system' || r.theme === 'light' || r.theme === 'dark') &&
     isNum(r.restSeconds) &&
-    isOptNum(r.lastBackupAt),
+    isOptNum(r.lastBackupAt) &&
+    (r.trainingDays === undefined || (Array.isArray(r.trainingDays) && r.trainingDays.every((d) => Number.isInteger(d) && d >= 0 && d <= 6))) &&
+    (r.inbodyReminderDismissed === undefined || typeof r.inbodyReminderDismissed === 'string'),
 }
 
 /** Checks the structure of a parsed backup; throws BackupValidationError with a Ukrainian message. */
