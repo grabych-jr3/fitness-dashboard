@@ -1,99 +1,33 @@
-/* Base styles. The full Liquid Glass design system arrives in stage 2. */
-:root {
-  color-scheme: light dark;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
-  --bg: #f2f2f7;
-  --fg: #1c1c1e;
-  --muted: #6e6e73;
-  --accent: #5856d6;
-  --glass: rgba(255, 255, 255, 0.55);
-  --glass-border: rgba(255, 255, 255, 0.7);
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+@import './glass/glass.css';
+
+* { box-sizing: border-box; }
+
+html {
+  font-family: var(--font);
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b0b12;
-    --fg: #f5f5f7;
-    --muted: #98989f;
-    --accent: #7d7aff;
-    --glass: rgba(40, 40, 50, 0.45);
-    --glass-border: rgba(255, 255, 255, 0.14);
-    --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  }
-}
-
-* { box-sizing: border-box; }
-
 html, body, #root { margin: 0; min-height: 100%; }
 
 body {
-  background: var(--bg);
   color: var(--fg);
-  /* Colour blobs give the glass something to blur. */
-  background-image:
-    radial-gradient(40% 35% at 15% 10%, rgba(88, 86, 214, 0.35), transparent 70%),
-    radial-gradient(45% 40% at 90% 30%, rgba(48, 176, 199, 0.3), transparent 70%),
-    radial-gradient(50% 40% at 40% 95%, rgba(255, 45, 85, 0.18), transparent 70%);
-  background-attachment: fixed;
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
 }
 
 .app { min-height: 100dvh; }
 
 .app-main {
-  padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 110px);
+  padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 112px);
   max-width: 720px;
   margin: 0 auto;
 }
 
-.page-title { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; margin: 8px 0 20px; }
-
-.placeholder {
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  border-radius: 24px;
-  padding: 20px;
-  box-shadow: var(--shadow);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
-}
-.placeholder p { margin: 0 0 6px; font-size: 17px; line-height: 1.4; }
-
-.muted { color: var(--muted); font-size: 15px; }
+.placeholder-text { margin: 0 0 6px; font-size: 17px; line-height: 1.4; }
+.placeholder-note { margin: 0; font-size: 15px; }
 .version { margin-top: 24px; text-align: center; font-size: 13px; }
 
-.tabbar {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(env(safe-area-inset-bottom) + 10px);
-  width: min(calc(100% - 24px), 480px);
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  padding: 6px;
-  border-radius: 32px;
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
-  z-index: 10;
-}
-
-.tab {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 0;
-  border-radius: 26px;
-  color: var(--muted);
-  text-decoration: none;
-  font-size: 10px;
-  font-weight: 600;
-  transition: background 0.2s, color 0.2s, transform 0.15s;
-}
-.tab:active { transform: scale(0.94); }
-.tab-active { color: var(--accent); background: rgba(127, 127, 140, 0.16); }
+/* Settings rows */
+.set-row { display: flex; flex-direction: column; gap: 10px; }
+.set-row + .set-row { margin-top: 18px; }
