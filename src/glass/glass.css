@@ -10,6 +10,12 @@
   --lg-sat: 190%;
   --lg-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --lg-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Bottom inset for floating bars. iOS can report a much larger safe area (Safari's
+     collapsed toolbar etc.), which pushed the tab bar up to mid-screen — cap it at the
+     home-indicator height and let the bar float just above the indicator like iOS 26. */
+  --safe-bottom: min(env(safe-area-inset-bottom, 0px), 34px);
+  --tabbar-bottom: max(10px, calc(var(--safe-bottom) - 8px));
+  --tabbar-height: 64px;
   --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
   --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
 }
@@ -227,7 +233,7 @@
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(env(safe-area-inset-bottom) + 10px);
+  bottom: var(--tabbar-bottom);
   width: min(calc(100% - 24px), 480px);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -313,7 +319,7 @@
   position: fixed;
   left: 8px;
   right: 8px;
-  bottom: calc(env(safe-area-inset-bottom) + 8px);
+  bottom: max(8px, var(--safe-bottom));
   z-index: 41;
   max-height: calc(100dvh - env(safe-area-inset-top) - 40px);
   overflow: auto;
