@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Page from '../components/Page.tsx'
+import WeighInList from '../components/WeighInList.tsx'
 import WeighInSheet from '../components/WeighInSheet.tsx'
 import { db } from '../data/db.ts'
 import { toIsoDate } from '../data/dates.ts'
@@ -83,6 +84,8 @@ export default function Measurements() {
         ⚖️ Швидке зважування
       </Button>
 
+      <WeighInsCard />
+
       {scans && scans.length > 0 && (
         <Glass padded>
           <h2 className="lg-h2">Мої заміри</h2>
@@ -129,5 +132,16 @@ export default function Measurements() {
         </div>
       </Sheet>
     </Page>
+  )
+}
+
+function WeighInsCard() {
+  const count = useLiveQuery(() => db.weighIns.count(), [])
+  if (!count) return null
+  return (
+    <Glass padded>
+      <h2 className="lg-h2">Мої зважування</h2>
+      <WeighInList />
+    </Glass>
   )
 }

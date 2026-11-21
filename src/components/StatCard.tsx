@@ -12,6 +12,7 @@ export default function StatCard({
   delta,
   digits = 1,
   good = 'neutral',
+  note,
 }: {
   label: string
   value: number | null | undefined
@@ -19,6 +20,8 @@ export default function StatCard({
   delta?: number | null
   digits?: number
   good?: 'up' | 'down' | 'neutral'
+  /** Small caption under the change, e.g. where the value comes from. */
+  note?: string
 }) {
   const d = fmtDelta(delta, digits)
   let tone = ''
@@ -35,6 +38,7 @@ export default function StatCard({
         <span className="lg-muted stat-unit">{unit}</span>
       </div>
       <div className={'stat-delta ' + tone}>{d ? `${d} ${unit}` : 'перший замір'}</div>
+      {note && <div className="stat-note">{note}</div>}
     </Glass>
   )
 }

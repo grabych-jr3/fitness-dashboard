@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { db } from '../data/db.ts'
 import { toIsoDate } from '../data/dates.ts'
 import { Button, Sheet } from '../glass'
+import WeighInList from './WeighInList.tsx'
 
 /** Quick body-weight entry between InBody scans. One entry per date: a new one replaces the old. */
 export default function WeighInSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -51,6 +52,10 @@ export default function WeighInSheet({ open, onClose }: { open: boolean; onClose
           Зберегти
         </Button>
       </form>
+      <div className="weigh-recent">
+        <div className="lg-label">Останні записи</div>
+        <WeighInList limit={5} empty="Ще немає зважувань." />
+      </div>
     </Sheet>
   )
 }

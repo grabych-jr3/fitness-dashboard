@@ -221,3 +221,6 @@ select.lg-input { appearance: none; -webkit-appearance: none; }
 @keyframes lg-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: no-preference) { .scan-toast { animation: lg-toast-in 0.4s var(--lg-spring); } }
 @keyframes lg-toast-in { from { transform: translate(-50%, -24px); opacity: 0; } }
+.stat-note { margin-top: 2px; font-size: 12px; color: var(--muted); }
+.weigh-val { color: var(--fg); font-variant-numeric: tabular-nums; }
+.weigh-recent { margin-top: 18px; display: flex; flex-direction: column; gap: 6px; }
