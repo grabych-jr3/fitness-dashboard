@@ -4,11 +4,12 @@ import { Link } from 'react-router-dom'
 import TrendChart from '../charts/TrendChart.tsx'
 import Page from '../components/Page.tsx'
 import StatCard from '../components/StatCard.tsx'
+import GoalSheet from '../components/GoalSheet.tsx'
 import WeighInSheet from '../components/WeighInSheet.tsx'
 import { db } from '../data/db.ts'
 import { weekRange } from '../data/dates.ts'
 import { useScans, useSettings, useWeightSeries } from '../data/hooks.ts'
-import { Button, Glass } from '../glass'
+import { AnimatedNumber, Button, Glass } from '../glass'
 import { diff, fmt, fmtDate } from '../lib/format.ts'
 
 function useThisWeek() {
@@ -27,6 +28,7 @@ export default function Overview() {
   const series = useWeightSeries()
   const week = useThisWeek()
   const [weighIn, setWeighIn] = useState(false)
+  const [goalOpen, setGoalOpen] = useState(false)
 
   const latest = scans?.at(-1)
   const prev = scans && scans.length > 1 ? scans.at(-2) : undefined
@@ -53,9 +55,17 @@ export default function Overview() {
       <Glass padded className="goal-card">
         <div className="lg-row">
           <div>
-            <div className="lg-label">Шлях до {fmt(goal)} кг</div>
+            <button type="button" className="goal-edit" onClick={() => setGoalOpen(true)} aria-label="Змінити ціль">
+              <span className="lg-label">Ціль: {fmt(goal)} кг</span>
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                <path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+              </svg>
+            </button>
             <div className="goal-now">
-              <span className="lg-big">{fmt(current?.weight)}</span> <span className="lg-muted">кг</span>
+              <span className="lg-big">
+                <AnimatedNumber value={current?.weight} format={(v) => fmt(v)} />
+              </span>{' '}
+              <span className="lg-muted">кг</span>
             </div>
           </div>
           <div className="lg-spacer" />
@@ -118,6 +128,7 @@ export default function Overview() {
       </div>
 
       <WeighInSheet open={weighIn} onClose={() => setWeighIn(false)} />
+      <GoalSheet open={goalOpen} onClose={() => setGoalOpen(false)} />
     </Page>
   )
 }

@@ -32,7 +32,7 @@ export default function Measurements() {
   const camera = useRef<HTMLInputElement>(null)
   const gallery = useRef<HTMLInputElement>(null)
   const [ocr, setOcr] = useState<{ p: number; stage: OcrStage } | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<{ text: string; detail: string; photo: File } | null>(null)
   const [editor, setEditor] = useState<EditorInput | null>(null)
   const [weighIn, setWeighIn] = useState(false)
   const [remove, setRemove] = useState<InbodyScan | null>(null)
@@ -48,7 +48,16 @@ export default function Measurements() {
       setEditor({ values: valuesFromParsed(parsed, toIsoDate()), issues: parsed.issues, photo: file, confidence: parsed.confidence })
     } catch (e) {
       console.error(e)
-      setError(navigator.onLine ? 'Не вдалося розпізнати фото. Спробуй ще раз або введи цифри вручну.' : 'Для першого розпізнавання потрібен інтернет (завантаження ~7 МБ). Потім працює офлайн.')
+      const step = (e as { step?: string }).step
+      const text =
+        step === 'photo'
+          ? 'Не вдалося відкрити це фото.'
+          : step === 'load'
+            ? navigator.onLine
+              ? 'Не вдалося завантажити модуль розпізнавання.'
+              : 'Для першого розпізнавання потрібен інтернет (~7 МБ). Потім працює офлайн.'
+            : 'Не вдалося розпізнати цифри на фото.'
+      setError({ text, detail: e instanceof Error ? e.message : String(e), photo: file })
     } finally {
       setOcr(null)
       if (camera.current) camera.current.value = ''
@@ -79,7 +88,21 @@ export default function Measurements() {
             </div>
           </div>
         )}
-        {error && <p className="form-error" style={{ marginTop: 10 }}>{error}</p>}
+        {error && (
+          <div className="ocr-error" role="alert">
+            <p className="form-error">{error.text} Можна ввести цифри вручну — фото збережеться разом із заміром.</p>
+            <Button block onClick={() => {
+              setEditor({ values: emptyValues(toIsoDate()), issues: [], photo: error.photo })
+              setError(null)
+            }}>
+              Ввести вручну з цим фото
+            </Button>
+            <details className="ocr-detail">
+              <summary>Деталі помилки</summary>
+              <code>{error.detail}</code>
+            </details>
+          </div>
+        )}
         <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => onFile(e.target.files?.[0])} />
         <input ref={gallery} type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />
       </Glass>

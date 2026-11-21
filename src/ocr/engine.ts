@@ -18,6 +18,30 @@ declare const __TESSERACT_DIR__: string
 
 export type OcrStage = 'preprocess' | 'load' | 'recognize' | 'parse' | 'done'
 
+/** OCR failure with the step it happened in, so the UI can say what went wrong. */
+export class OcrError extends Error {
+  readonly step: 'photo' | 'load' | 'recognize'
+  constructor(step: 'photo' | 'load' | 'recognize', cause: unknown) {
+    const detail = cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause)
+    super(detail)
+    this.name = 'OcrError'
+    this.step = step
+  }
+}
+
+const withTimeout = <T,>(p: Promise<T>, ms: number, what: string) =>
+  new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(`${what}: тайм-аут ${Math.round(ms / 1000)} с`)), ms)
+    p.then(
+      (v) => (clearTimeout(t), resolve(v)),
+      (e) => (clearTimeout(t), reject(e)),
+    )
+  })
+
+/** PNG blob of a canvas (Tesseract accepts blobs everywhere, including Safari). */
+const canvasToBlob = (c: HTMLCanvasElement) =>
+  new Promise<Blob>((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error('canvas.toBlob повернув порожнє'))), 'image/png'))
+
 export type OcrProgress = (progress: number, stage: OcrStage) => void
 
 const assetUrl = (path: string) => new URL(`${import.meta.env.BASE_URL}${__TESSERACT_DIR__}${path}`, self.location.href).href
@@ -64,15 +88,34 @@ async function run(file: Blob, onProgress?: OcrProgress): Promise<{ text: string
   progressListener = onProgress
   try {
     onProgress?.(0, 'preprocess')
-    const canvases = await prepareOcrPasses(file)
+    let images: Blob[]
+    try {
+      const canvases = await prepareOcrPasses(file)
+      images = await Promise.all(canvases.map(canvasToBlob))
+      // free canvas memory early (iPhone has a tight canvas budget)
+      canvases.forEach((c) => ((c.width = 0), (c.height = 0)))
+    } catch (e) {
+      throw new OcrError('photo', e)
+    }
     onProgress?.(0.1, 'load')
-    const worker = await getWorker()
+    let worker: Worker
+    try {
+      worker = await withTimeout(getWorker(), 90_000, 'завантаження')
+    } catch (e) {
+      throw new OcrError('load', e)
+    }
     const texts: string[] = []
     const passes: ParsedScan[] = []
-    for (const [i, canvas] of canvases.entries()) {
-      passSlice = { from: 0.3 + (0.65 * i) / canvases.length, size: 0.65 / canvases.length }
+    for (const [i, image] of images.entries()) {
+      passSlice = { from: 0.3 + (0.65 * i) / images.length, size: 0.65 / images.length }
       onProgress?.(passSlice.from, 'recognize')
-      const { data } = await worker.recognize(canvas)
+      let data
+      try {
+        ;({ data } = await withTimeout(worker.recognize(image), 120_000, 'розпізнавання'))
+      } catch (e) {
+        if (i > 0) break // keep the first pass if the second one fails
+        throw new OcrError('recognize', e)
+      }
       texts.push(data.text ?? '')
       passes.push(parseInbodyText(texts[i]))
       // A clean first read needs no second opinion.

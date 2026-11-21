@@ -207,12 +207,67 @@ export function processPixels(
   return grayToRgba(gray)
 }
 
+/** A decoded photo that can be drawn onto a canvas. */
+export interface DecodedImage {
+  source: CanvasImageSource
+  width: number
+  height: number
+  close(): void
+}
+
+/** Turns any decode failure into one readable error. */
+export class ImageDecodeError extends Error {
+  readonly attempts: string[]
+  constructor(attempts: string[]) {
+    super(`Не вдалося відкрити фото (${attempts.join('; ')})`)
+    this.attempts = attempts
+    this.name = 'ImageDecodeError'
+  }
+}
+
+const describe = (e: unknown) => (e instanceof Error ? `${e.name}: ${e.message}` : String(e))
+
+/**
+ * Browser only. Decodes a photo with whatever the browser supports, upright (EXIF):
+ * 1. createImageBitmap with imageOrientation 'from-image' (Chrome),
+ * 2. plain createImageBitmap (Safari rejects unknown option values; it applies EXIF itself),
+ * 3. an <img> element (works everywhere, including HEIC on iPhone).
+ */
+export async function decodeImage(file: Blob): Promise<DecodedImage> {
+  const attempts: string[] = []
+  if (typeof createImageBitmap === 'function') {
+    for (const opts of [{ imageOrientation: 'from-image' } as ImageBitmapOptions, undefined]) {
+      try {
+        const b = opts ? await createImageBitmap(file, opts) : await createImageBitmap(file)
+        if (b.width > 0 && b.height > 0) return { source: b, width: b.width, height: b.height, close: () => b.close() }
+        b.close()
+        attempts.push('bitmap: порожнє зображення')
+      } catch (e) {
+        attempts.push(`bitmap${opts ? '+orientation' : ''}: ${describe(e)}`)
+      }
+    }
+  }
+  const url = URL.createObjectURL(file)
+  try {
+    const img = new Image()
+    img.decoding = 'async'
+    img.src = url
+    await img.decode()
+    if (!img.naturalWidth) throw new Error('порожнє зображення')
+    return { source: img, width: img.naturalWidth, height: img.naturalHeight, close: () => URL.revokeObjectURL(url) }
+  } catch (e) {
+    URL.revokeObjectURL(url)
+    attempts.push(`img: ${describe(e)}`)
+    throw new ImageDecodeError(attempts)
+  }
+}
+
 /**
  * Browser only. Decodes the photo (respecting EXIF orientation), scales the
  * long side to ~2000 px and returns a binarised canvas ready for Tesseract.
  */
 export async function preprocessImage(file: Blob, options: PreprocessOptions = {}): Promise<HTMLCanvasElement> {
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
+  const bitmap = await decodeImage(file)
   try {
     const { width, height } = fitLongSide(bitmap.width, bitmap.height, options.targetLongSide ?? 2000)
     const canvas = document.createElement('canvas')
@@ -222,7 +277,7 @@ export async function preprocessImage(file: Blob, options: PreprocessOptions = {
     if (!ctx) throw new Error('Canvas 2D недоступний')
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = 'high'
-    ctx.drawImage(bitmap, 0, 0, width, height)
+    ctx.drawImage(bitmap.source, 0, 0, width, height)
     const image = ctx.getImageData(0, 0, width, height)
     image.data.set(processPixels(image.data, width, height, options))
     ctx.putImageData(image, 0, 0)
@@ -237,8 +292,8 @@ export async function preprocessImage(file: Blob, options: PreprocessOptions = {
  * contrast-stretched canvas per target size. Two sizes give Tesseract two
  * independent reads of the faint digits; the results are merged afterwards.
  */
-export async function prepareOcrPasses(file: Blob, longSides: readonly number[] = [2000, 3000]): Promise<HTMLCanvasElement[]> {
-  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
+export async function prepareOcrPasses(file: Blob, longSides: readonly number[] = [2000, 2800]): Promise<HTMLCanvasElement[]> {
+  const bitmap = await decodeImage(file)
   try {
     // 1. Find the paper on a small copy.
     const small = fitLongSide(bitmap.width, bitmap.height, 400)
@@ -247,7 +302,7 @@ export async function prepareOcrPasses(file: Blob, longSides: readonly number[] 
     probe.height = small.height
     const pctx = probe.getContext('2d', { willReadFrequently: true })
     if (!pctx) throw new Error('Canvas 2D недоступний')
-    pctx.drawImage(bitmap, 0, 0, small.width, small.height)
+    pctx.drawImage(bitmap.source, 0, 0, small.width, small.height)
     const gray = toGrayscale(pctx.getImageData(0, 0, small.width, small.height).data)
     const box = findPaperBounds(gray, small.width, small.height)
     const k = bitmap.width / small.width
@@ -266,7 +321,7 @@ export async function prepareOcrPasses(file: Blob, longSides: readonly number[] 
       if (!ctx) throw new Error('Canvas 2D недоступний')
       ctx.imageSmoothingEnabled = true
       ctx.imageSmoothingQuality = 'high'
-      ctx.drawImage(bitmap, src.x, src.y, src.width, src.height, 0, 0, size.width, size.height)
+      ctx.drawImage(bitmap.source, src.x, src.y, src.width, src.height, 0, 0, size.width, size.height)
       const image = ctx.getImageData(0, 0, size.width, size.height)
       image.data.set(processPixels(image.data, size.width, size.height, { threshold: false }))
       ctx.putImageData(image, 0, 0)

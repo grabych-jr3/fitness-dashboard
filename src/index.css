@@ -144,3 +144,22 @@ body {
 .backup-nudge { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; }
 .backup-nudge a { color: var(--accent); font-weight: 600; text-decoration: none; white-space: nowrap; }
 select.lg-input { appearance: none; -webkit-appearance: none; }
+.ocr-error { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.ocr-error .form-error { margin: 0; }
+.ocr-detail { font-size: 12px; color: var(--muted); }
+.ocr-detail code { display: block; margin-top: 6px; white-space: pre-wrap; word-break: break-word; }
+
+/* Goal edit + motion details */
+.goal-edit { appearance: none; border: 0; background: none; padding: 0; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font: inherit; }
+.goal-edit:active { opacity: 0.6; }
+@media (prefers-reduced-motion: no-preference) {
+  .set-check[aria-pressed='true'] { animation: lg-pop 0.4s var(--lg-spring); }
+  .set-row { transition: background 0.35s var(--lg-ease); }
+  .rest-pill { transition: background 0.4s var(--lg-ease); }
+  .goal-bar-fill, .seg-bar-fill, .bal-fill { transition: width 1s var(--lg-ease); }
+  .stat-delta { animation: lg-fade 0.6s 0.25s var(--lg-ease) both; }
+}
+@keyframes lg-grow { from { transform: scaleX(0); } }
+@media (prefers-reduced-motion: no-preference) {
+  .goal-bar-fill, .seg-bar-fill, .bal-fill { transform-origin: left center; animation: lg-grow 1s 0.15s var(--lg-ease) both; }
+}

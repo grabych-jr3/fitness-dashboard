@@ -320,10 +320,45 @@
 .lg-sheet-grabber { width: 38px; height: 5px; border-radius: 3px; background: var(--separator); margin: 0 auto 10px; }
 .lg-sheet-title { font: 600 20px/1.2 var(--font-display); margin: 4px 0 14px; text-align: center; }
 @keyframes lg-fade { from { opacity: 0; } }
+@keyframes lg-fade-out { to { opacity: 0; } }
 @keyframes lg-sheet-in { from { transform: translateY(110%); } }
+@keyframes lg-sheet-out { to { transform: translateY(110%); } }
+.lg-sheet-backdrop.is-closing { animation: lg-fade-out 0.3s var(--lg-ease) forwards; }
+.lg-sheet.is-closing { animation: lg-sheet-out 0.3s cubic-bezier(0.4, 0, 1, 1) forwards; }
+.lg-sheet.is-dragging { animation: none; transition: none; }
+.lg-sheet:not(.is-dragging):not(.is-closing) { transition: transform 0.35s var(--lg-spring); }
+.lg-sheet-handle { touch-action: none; cursor: grab; padding-top: 2px; }
+
+/* ── Motion: pages, lists, presses ─────────────────────────────────── */
+@keyframes lg-page-in { from { opacity: 0; transform: translateY(14px) scale(0.985); filter: blur(6px); } }
+@keyframes lg-rise { from { opacity: 0; transform: translateY(16px) scale(0.98); } }
+@keyframes lg-pop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes lg-row-in { from { opacity: 0; transform: translateX(-8px); } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .page-anim { animation: lg-page-in 0.5s var(--lg-ease) both; }
+  .page-anim .lg-stack > *,
+  .tab-anim > * { animation: lg-rise 0.55s var(--lg-ease) both; }
+  .page-anim .lg-stack > :nth-child(2), .tab-anim > :nth-child(2) { animation-delay: 0.05s; }
+  .page-anim .lg-stack > :nth-child(3), .tab-anim > :nth-child(3) { animation-delay: 0.1s; }
+  .page-anim .lg-stack > :nth-child(4), .tab-anim > :nth-child(4) { animation-delay: 0.15s; }
+  .page-anim .lg-stack > :nth-child(5), .tab-anim > :nth-child(5) { animation-delay: 0.2s; }
+  .page-anim .lg-stack > :nth-child(6), .tab-anim > :nth-child(6) { animation-delay: 0.25s; }
+  .page-anim .lg-stack > :nth-child(n+7), .tab-anim > :nth-child(n+7) { animation-delay: 0.3s; }
+  .lg-grid-2 > * { animation: lg-rise 0.5s var(--lg-ease) both; }
+  .lg-grid-2 > :nth-child(2) { animation-delay: 0.04s; }
+  .lg-grid-2 > :nth-child(3) { animation-delay: 0.08s; }
+  .lg-grid-2 > :nth-child(4) { animation-delay: 0.12s; }
+  .lg-grid-2 > :nth-child(5) { animation-delay: 0.16s; }
+  .lg-grid-2 > :nth-child(n+6) { animation-delay: 0.2s; }
+  .lg-sheet .lg-stack > * { animation: none; }
+  .scan-row, .scan-item, .seg-row, .bal-row { animation: lg-row-in 0.4s var(--lg-ease) both; }
+  .lg-btn, .lg-tab, .lg-seg button, .glass--interactive { transition: transform 0.35s var(--lg-spring), color 0.25s, background 0.25s, box-shadow 0.25s; }
+  .lg-btn:active { transform: scale(0.96); }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .lg-sheet, .lg-sheet-backdrop { animation: none; }
+  .lg-sheet, .lg-sheet-backdrop, .lg-sheet.is-closing, .lg-sheet-backdrop.is-closing { animation: none; }
   .lg-tab-indicator, .lg-seg-thumb { transition: none; }
 }
 

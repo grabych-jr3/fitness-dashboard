@@ -129,9 +129,11 @@ export default function Progress() {
           { value: 'balance', label: 'Баланс' },
         ]}
       />
+      <div key={tab} className="lg-stack tab-anim">
       {tab === 'body' && <BodyTab />}
       {tab === 'strength' && <StrengthTab />}
       {tab === 'balance' && <BalanceTab />}
+      </div>
     </Page>
   )
 }

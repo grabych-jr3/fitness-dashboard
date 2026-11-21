@@ -1,4 +1,4 @@
-import { Glass } from '../glass'
+import { AnimatedNumber, Glass } from '../glass'
 import { fmt, fmtDelta } from '../lib/format.ts'
 
 /**
@@ -29,7 +29,9 @@ export default function StatCard({
     <Glass padded interactive className="stat">
       <div className="lg-label">{label}</div>
       <div className="stat-value">
-        <span className="lg-big">{fmt(value, digits)}</span>
+        <span className="lg-big">
+          <AnimatedNumber value={value} format={(v) => fmt(v, digits)} />
+        </span>
         <span className="lg-muted stat-unit">{unit}</span>
       </div>
       <div className={'stat-delta ' + tone}>{d ? `${d} ${unit}` : 'перший замір'}</div>
