@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { Bar } from 'react-chartjs-2'
 import TrendChart from '../charts/TrendChart.tsx'
 import { baseOptions, useChartTheme } from '../charts/useChartTheme.ts'
+import { useReleaseCanvas } from '../charts/useReleaseCanvas.ts'
 import { db } from '../data/db.ts'
 import { useExercises, usePersonalRecords } from '../data/hooks.ts'
 import { Glass } from '../glass'
@@ -11,6 +12,7 @@ import { e1rmSeries, weeklyVolume } from './strength.ts'
 
 export default function StrengthTab() {
   const t = useChartTheme()
+  const barRef = useReleaseCanvas<'bar'>()
   const data = useLiveQuery(async () => ({ sets: await db.sets.toArray(), workouts: await db.workouts.toArray() }), [])
   const exercises = useExercises({ includeArchived: true })
   const records = usePersonalRecords()
@@ -57,6 +59,7 @@ export default function StrengthTab() {
         <h2 className="lg-h2">Об'єм за тиждень</h2>
         <div style={{ height: 200 }} role="img" aria-label="Тижневий об'єм тренувань, кг × повтори">
           <Bar
+            ref={barRef}
             data={{
               labels: volume.map((v) => fmtDate(v.week)),
               datasets: [{ label: "Об'єм", data: volume.map((v) => v.volume), backgroundColor: t.accent, borderRadius: 8, maxBarThickness: 28 }],

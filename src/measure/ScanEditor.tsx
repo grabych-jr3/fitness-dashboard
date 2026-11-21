@@ -67,20 +67,15 @@ export default function ScanEditor({ input, onClose }: { input: EditorInput | nu
     }
     setSaving(true)
     try {
-      await db.transaction('rw', [db.inbodyScans, db.photos], async () => {
-        let photoId: number | undefined = input.photoId
-        if (photoId === undefined && input.photo) photoId = (await db.photos.add({ blob: input.photo, createdAt: Date.now() })) as number
+      // Receipt photos aren't kept: they're only needed while a scan is being recognised.
+      await db.transaction('rw', [db.inbodyScans], async () => {
         if (input.scanId !== undefined) {
           const old = await db.inbodyScans.get(input.scanId)
-          await db.inbodyScans.put({ ...old, ...res.scan, id: input.scanId, photoId: photoId ?? old?.photoId, createdAt: old?.createdAt ?? Date.now() })
+          await db.inbodyScans.put({ ...old, ...res.scan, id: input.scanId, photoId: undefined, createdAt: old?.createdAt ?? Date.now() })
         } else {
           // One scan per date: a new scan for the same day replaces the old one.
-          const same = await db.inbodyScans.where('date').equals(res.scan.date).toArray()
-          for (const s of same) {
-            if (s.photoId && s.photoId !== photoId) await db.photos.delete(s.photoId)
-            await db.inbodyScans.delete(s.id!)
-          }
-          await db.inbodyScans.add({ ...res.scan, photoId, ocrConfidence: input.confidence, createdAt: Date.now() })
+          await db.inbodyScans.where('date').equals(res.scan.date).delete()
+          await db.inbodyScans.add({ ...res.scan, ocrConfidence: input.confidence, createdAt: Date.now() })
         }
       })
       if (input.draftId !== undefined) await completeScan(input.draftId)
