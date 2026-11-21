@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Page from '../components/Page.tsx'
 import { db } from '../data/db.ts'
 import { useExercises, useSettings, useTemplates } from '../data/hooks.ts'
@@ -10,6 +11,7 @@ import ExerciseBlock from '../workout/ExerciseBlock.tsx'
 import ExercisePicker from '../workout/ExercisePicker.tsx'
 import HistoryList from '../workout/HistoryList.tsx'
 import { fmtClock, stopRest } from '../workout/restTimer.ts'
+import '../settings/settings.css'
 
 function useActiveWorkout() {
   return useLiveQuery(async () => {
@@ -123,25 +125,30 @@ export default function Workout() {
   return (
     <Page title="Тренування">
       {(templates ?? []).map((t) => (
-        <Glass key={t.id} padded interactive as="button" type="button" className="tpl-card" onClick={() => startWorkout(t.id)}>
-          <div className="lg-row">
-            <h2 className="lg-h2" style={{ margin: 0 }}>
-              {t.name}
-            </h2>
-            <div className="lg-spacer" />
-            <span className="tpl-start">Почати →</span>
-          </div>
-          <ul className="tpl-list">
-            {t.items.map((i) => (
-              <li key={i.exerciseId}>
-                {names.get(i.exerciseId) ?? '…'}{' '}
-                <span className="lg-muted">
-                  {i.targetSets}×{i.repMin}–{i.repMax}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Glass>
+        <div key={t.id} className="tpl-card-wrap">
+          <Glass padded interactive as="button" type="button" className="tpl-card tpl-card--editable" onClick={() => startWorkout(t.id)}>
+            <div className="lg-row">
+              <h2 className="lg-h2" style={{ margin: 0 }}>
+                {t.name}
+              </h2>
+              <div className="lg-spacer" />
+              <span className="tpl-start">Почати →</span>
+            </div>
+            <ul className="tpl-list">
+              {t.items.map((i) => (
+                <li key={i.exerciseId}>
+                  {names.get(i.exerciseId) ?? '…'}{' '}
+                  <span className="lg-muted">
+                    {i.targetSets}×{i.repMin}–{i.repMax}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Glass>
+          <Link to="/settings#templates" className="ex-link tpl-edit">
+            Редагувати
+          </Link>
+        </div>
       ))}
       <Button block onClick={() => startWorkout()}>
         Вільне тренування

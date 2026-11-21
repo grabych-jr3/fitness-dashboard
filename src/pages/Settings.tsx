@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import Page from '../components/Page.tsx'
 import { BackupValidationError, backupFileName, exportAllAsBlob, importAll, readBackupFile } from '../data/backup.ts'
-import { db } from '../data/db.ts'
-import { updateSettings, useExercises, useSettings } from '../data/hooks.ts'
-import { muscleGroupLabels } from '../data/seed.ts'
-import { MUSCLE_GROUPS, type MuscleGroup } from '../data/types.ts'
+import { updateSettings, useSettings } from '../data/hooks.ts'
 import { Button, Glass, Segmented, Sheet, useTheme, type ThemeMode } from '../glass'
 import { fmtDate } from '../lib/format.ts'
+import ExerciseEditor from '../settings/ExerciseEditor.tsx'
+import TemplatesEditor from '../settings/TemplatesEditor.tsx'
 
 const themeOptions: { value: ThemeMode; label: string }[] = [
   { value: 'system', label: 'Системна' },
@@ -126,74 +125,6 @@ function Backup() {
   )
 }
 
-function Exercises() {
-  const exercises = useExercises({ includeArchived: true })
-  const [open, setOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [group, setGroup] = useState<MuscleGroup>('chest')
-  const [error, setError] = useState<string | null>(null)
-
-  const add = async () => {
-    const n = name.trim()
-    if (n.length < 2) return setError('Введи назву.')
-    if ((exercises ?? []).some((e) => e.name.toLowerCase() === n.toLowerCase())) return setError('Така вправа вже є.')
-    await db.exercises.add({ name: n, primary: [group], secondary: [], archived: false })
-    setName('')
-    setError(null)
-    setOpen(false)
-  }
-
-  return (
-    <Glass padded>
-      <div className="lg-row">
-        <h2 className="lg-h2" style={{ margin: 0 }}>
-          Вправи
-        </h2>
-        <div className="lg-spacer" />
-        <button type="button" className="ex-link" onClick={() => setOpen(true)}>
-          + Додати
-        </button>
-      </div>
-      <p className="lg-muted set-text">Приховані вправи не показуються при додаванні, але їхня історія лишається.</p>
-      <div className="scan-list">
-        {(exercises ?? []).map((e) => (
-          <div key={e.id} className={'scan-row' + (e.archived ? ' ex-archived' : '')}>
-            <span>
-              {e.name}
-              <span className="lg-muted ex-groups"> · {e.primary.map((g) => muscleGroupLabels[g]).join(', ')}</span>
-            </span>
-            <button type="button" className="ex-link ex-link--muted" onClick={() => db.exercises.update(e.id!, { archived: !e.archived })}>
-              {e.archived ? 'Показати' : 'Сховати'}
-            </button>
-          </div>
-        ))}
-      </div>
-      <Sheet open={open} onClose={() => setOpen(false)} title="Нова вправа">
-        <div className="lg-stack">
-          <label className="lg-field">
-            Назва
-            <input className="lg-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Наприклад, Жим у тренажері" />
-          </label>
-          <label className="lg-field">
-            Основна група м'язів
-            <select className="lg-input" value={group} onChange={(e) => setGroup(e.target.value as MuscleGroup)}>
-              {MUSCLE_GROUPS.map((g) => (
-                <option key={g} value={g}>
-                  {muscleGroupLabels[g]}
-                </option>
-              ))}
-            </select>
-          </label>
-          {error && <p className="form-error">{error}</p>}
-          <Button variant="primary" block onClick={add}>
-            Додати
-          </Button>
-        </div>
-      </Sheet>
-    </Glass>
-  )
-}
-
 export default function Settings() {
   const [theme, setTheme] = useTheme()
   const settings = useSettings()
@@ -234,7 +165,8 @@ export default function Settings() {
       </Glass>
 
       <Backup />
-      <Exercises />
+      <TemplatesEditor />
+      <ExerciseEditor />
 
       <p className="lg-muted version">Версія {__APP_VERSION__}</p>
     </Page>
