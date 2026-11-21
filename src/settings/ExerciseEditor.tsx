@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
+import { db } from '../data/db.ts'
 import { useExercises } from '../data/hooks.ts'
+import { defaultWeightStep } from '../data/queries.ts'
 import { muscleGroupLabels } from '../data/seed.ts'
 import { MUSCLE_GROUPS, type Exercise, type MuscleGroup } from '../data/types.ts'
 import { Button, Glass, Sheet } from '../glass'
@@ -37,14 +39,18 @@ export function GroupChips({ value, onChange }: { value: GroupSelection; onChang
 function ExerciseSheet({ exercise, all, onClose }: { exercise: Exercise | null; all: readonly Exercise[]; onClose: () => void }) {
   const [name, setName] = useState(exercise?.name ?? '')
   const [groups, setGroups] = useState<GroupSelection>({ primary: exercise?.primary ?? [], secondary: exercise?.secondary ?? [] })
+  const [step, setStep] = useState(exercise?.weightStep !== undefined ? String(exercise.weightStep) : '')
   const [error, setError] = useState<string | null>(null)
   const warning = exerciseWarning(name)
 
   const save = async () => {
     const err = validateExercise({ name, ...groups }, all, exercise?.id)
     if (err) return setError(err)
+    const stepNum = step.trim() === '' ? undefined : Number(step.replace(',', '.'))
+    if (stepNum !== undefined && (!Number.isFinite(stepNum) || stepNum < 0 || stepNum > 50)) return setError('Крок ваги — число від 0 до 50 кг.')
     try {
-      await saveExercise({ name, ...groups }, exercise?.id)
+      const id = await saveExercise({ name, ...groups }, exercise?.id)
+      await db.exercises.update(id, { weightStep: stepNum })
       onClose()
     } catch (e) {
       setError(e instanceof EditorError ? e.message : 'Не вдалося зберегти вправу.')
@@ -73,6 +79,12 @@ function ExerciseSheet({ exercise, all, onClose }: { exercise: Exercise | null; 
           <br />
           <b>Допоміжні:</b> {groups.secondary.length ? labels(groups.secondary) : '—'}
         </p>
+
+        <label className="lg-field">
+          Крок ваги, кг
+          <input className="lg-input" inputMode="decimal" value={step} onChange={(e) => setStep(e.target.value)} placeholder={`${defaultWeightStep(name)} (типово)`} />
+          <span className="lg-muted se-hint">Скільки додавати, коли всі підходи дійшли до верхньої межі повторів: наступна пара гантелей, плитка тренажера.</span>
+        </label>
 
         {error && <p className="form-error">{error}</p>}
         <div className="se-actions">

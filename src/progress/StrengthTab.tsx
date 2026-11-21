@@ -6,6 +6,7 @@ import { db } from '../data/db.ts'
 import { useExercises, usePersonalRecords } from '../data/hooks.ts'
 import { Glass } from '../glass'
 import { fmt, fmtDate } from '../lib/format.ts'
+import NextSteps from './NextSteps.tsx'
 import { e1rmSeries, weeklyVolume } from './strength.ts'
 
 export default function StrengthTab() {
@@ -33,6 +34,8 @@ export default function StrengthTab() {
 
   return (
     <>
+      <NextSteps />
+
       <Glass padded>
         <h2 className="lg-h2">Сила (e1RM)</h2>
         <select className="lg-input ex-select" value={exId} onChange={(e) => setPicked(Number(e.target.value))} aria-label="Вправа">

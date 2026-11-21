@@ -61,6 +61,8 @@ function tesseractAssets(): Plugin {
 
 export default defineConfig({
   base,
+  // one app bundle for a single-screen PWA; the warning threshold is just a nudge
+  build: { chunkSizeWarningLimit: 650 },
   define: {
     __APP_VERSION__: JSON.stringify(`${process.env.npm_package_version ?? '0.0.0'} · ${new Date().toISOString().slice(0, 10)}`),
   },

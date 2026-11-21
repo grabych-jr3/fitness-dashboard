@@ -160,7 +160,8 @@ const validators: Record<keyof BackupTables, (r: Rec) => boolean> = {
     r.name.trim() !== '' &&
     isGroups(r.primary) &&
     isGroups(r.secondary) &&
-    typeof r.archived === 'boolean',
+    typeof r.archived === 'boolean' &&
+    (r.weightStep === undefined || (isNum(r.weightStep) && r.weightStep >= 0)),
   templates: (r) =>
     isOptId(r.id) &&
     typeof r.name === 'string' &&

@@ -1,0 +1,25 @@
+:root { --prog-green: #1f9d4c; --prog-orange: #c46a00; --prog-red: #d70040; }
+:root[data-theme='dark'] { --prog-green: #4cd964; --prog-orange: #ffb340; --prog-red: #ff6482; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) { --prog-green: #4cd964; --prog-orange: #ffb340; --prog-red: #ff6482; } }
+.prog-today { margin: 2px 0 10px; }
+.prog-head { all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; font-size: 15px; }
+.prog-head:focus-visible { outline: 2px solid var(--accent); border-radius: 8px; }
+.prog-target { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--fg); }
+.prog-more { margin-left: auto; color: var(--muted); font-size: 14px; }
+.prog-last { margin: 4px 0 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+.prog-badges { display: inline-flex; gap: 6px; }
+.prog-badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; color: var(--fg-2); background: color-mix(in srgb, var(--muted) 18%, transparent); }
+.prog-badge--up-weight { color: var(--prog-green); background: color-mix(in srgb, #34c759 20%, transparent); }
+.prog-badge--up-reps { color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.prog-badge--deload, .prog-badge--plateau { color: var(--prog-orange); background: color-mix(in srgb, #ff9f0a 22%, transparent); }
+.prog-badge--pain { color: var(--prog-red); background: color-mix(in srgb, #ff375f 16%, transparent); }
+.prog-detail { margin-top: 8px; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--muted) 10%, transparent); font-size: 14px; color: var(--fg-2); }
+.prog-detail p { margin: 0 0 6px; }
+.prog-detail p:last-child { margin-bottom: 0; }
+.prog-tips { margin: 4px 0 0; padding-left: 20px; font-size: 14px; color: var(--fg-2); }
+.prog-tips li + li { margin-top: 4px; }
+.prog-row { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; border-top: 1px solid var(--separator); }
+.prog-row:first-child { border-top: 0; padding-top: 4px; }
+.prog-row-top { all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.prog-row-name { font-weight: 600; flex: 1; min-width: 0; }
+.prog-row-sub { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }

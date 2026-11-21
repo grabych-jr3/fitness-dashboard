@@ -93,6 +93,8 @@ export interface Exercise {
   primary: MuscleGroup[]
   secondary: MuscleGroup[]
   archived: boolean
+  /** kg added when it's time to go heavier; a default is guessed from the name when absent */
+  weightStep?: number
 }
 
 export interface TemplateItem {
