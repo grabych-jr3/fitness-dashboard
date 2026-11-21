@@ -1,3 +1,4 @@
+import { useLayoutEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import TabBar from './components/TabBar.tsx'
 import { Background } from './glass'
@@ -10,9 +11,15 @@ import RestTimer from './workout/RestTimer.tsx'
 
 export default function App() {
   const location = useLocation()
+  // The page scrolls inside its own container, so the tab bar never moves with iOS scrolling.
+  useLayoutEffect(() => {
+    document.getElementById('app-scroll')?.scrollTo({ top: 0 })
+  }, [location.pathname])
   return (
     <div className="app">
       <Background />
+      <div className="status-blur" aria-hidden="true" />
+      <div id="app-scroll" className="app-scroll">
       <main className="app-main">
         <div key={location.pathname} className="page-anim">
         <Routes location={location}>
@@ -25,6 +32,7 @@ export default function App() {
         </Routes>
         </div>
       </main>
+      </div>
       <RestTimer />
       <TabBar />
     </div>

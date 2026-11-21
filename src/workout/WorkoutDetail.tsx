@@ -140,7 +140,7 @@ export default function WorkoutDetail({
             onClick={() =>
               run(async () => {
                 await repeatWorkout(w.id!)
-                window.scrollTo({ top: 0 })
+                document.getElementById('app-scroll')?.scrollTo({ top: 0 })
               })
             }
           >
