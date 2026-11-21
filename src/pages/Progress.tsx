@@ -2,6 +2,7 @@ import { useState } from 'react'
 import TrendChart from '../charts/TrendChart.tsx'
 import Page from '../components/Page.tsx'
 import BalanceTab from '../progress/BalanceTab.tsx'
+import SegmentTrends from '../progress/SegmentTrends.tsx'
 import StrengthTab from '../progress/StrengthTab.tsx'
 import { useScans, useSettings, useWeightSeries } from '../data/hooks.ts'
 import type { InbodyScan, Segments } from '../data/types.ts'
@@ -59,6 +60,8 @@ function BodyTab() {
       </Glass>
 
       {scans.length > 0 && <SegmentsCard latest={scans.at(-1)!} prev={scans.length > 1 ? scans.at(-2) : undefined} />}
+
+      {scans.length > 0 && <SegmentTrends scans={scans} />}
 
       {scans.length > 0 && (
         <Glass padded>

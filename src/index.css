@@ -224,3 +224,5 @@ select.lg-input { appearance: none; -webkit-appearance: none; }
 .stat-note { margin-top: 2px; font-size: 12px; color: var(--muted); }
 .weigh-val { color: var(--fg); font-variant-numeric: tabular-nums; }
 .weigh-recent { margin-top: 18px; display: flex; flex-direction: column; gap: 6px; }
+.seg-trend-controls { margin-bottom: 12px; gap: 8px; }
+.seg-trend-summary { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; font-size: 14px; color: var(--fg-2); font-variant-numeric: tabular-nums; }

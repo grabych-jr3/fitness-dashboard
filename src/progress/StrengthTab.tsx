@@ -1,9 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
-import { Bar } from 'react-chartjs-2'
 import TrendChart from '../charts/TrendChart.tsx'
-import { baseOptions, useChartTheme } from '../charts/useChartTheme.ts'
-import { useReleaseCanvas } from '../charts/useReleaseCanvas.ts'
+import BarChart from '../charts/BarChart.tsx'
 import { db } from '../data/db.ts'
 import { useExercises, usePersonalRecords } from '../data/hooks.ts'
 import { Glass } from '../glass'
@@ -11,8 +9,6 @@ import { fmt, fmtDate } from '../lib/format.ts'
 import { e1rmSeries, weeklyVolume } from './strength.ts'
 
 export default function StrengthTab() {
-  const t = useChartTheme()
-  const barRef = useReleaseCanvas<'bar'>()
   const data = useLiveQuery(async () => ({ sets: await db.sets.toArray(), workouts: await db.workouts.toArray() }), [])
   const exercises = useExercises({ includeArchived: true })
   const records = usePersonalRecords()
@@ -34,7 +30,6 @@ export default function StrengthTab() {
   const exId = picked !== null && withData.includes(picked) ? picked : withData[0]
   const series = e1rmSeries(exId, data.sets, data.workouts)
   const volume = weeklyVolume(data.sets, data.workouts)
-  const opts = baseOptions(t)
 
   return (
     <>
@@ -57,32 +52,12 @@ export default function StrengthTab() {
 
       <Glass padded>
         <h2 className="lg-h2">Об'єм за тиждень</h2>
-        <div style={{ height: 200 }} role="img" aria-label="Тижневий об'єм тренувань, кг × повтори">
-          <Bar
-            ref={barRef}
-            data={{
-              labels: volume.map((v) => fmtDate(v.week)),
-              datasets: [{ label: "Об'єм", data: volume.map((v) => v.volume), backgroundColor: t.accent, borderRadius: 8, maxBarThickness: 28 }],
-            }}
-            options={{
-              ...opts,
-              plugins: {
-                ...opts.plugins,
-                tooltip: {
-                  ...opts.plugins.tooltip,
-                  callbacks: {
-                    title: (items) => (items[0] ? `Тиждень з ${fmtDate(volume[items[0].dataIndex].week, 'full')}` : ''),
-                    label: (item) => ` ${volume[item.dataIndex].volume.toLocaleString('uk-UA')} кг · ${volume[item.dataIndex].sets} підх.`,
-                  },
-                },
-              },
-              scales: {
-                ...opts.scales,
-                y: { ...opts.scales.y, beginAtZero: true, ticks: { ...opts.scales.y.ticks, callback: (v) => (Number(v) >= 1000 ? `${Number(v) / 1000}т` : v) } },
-              },
-            }}
-          />
-        </div>
+        <BarChart
+          label="Тижневий об'єм тренувань, кг × повтори"
+          labels={volume.map((v) => fmtDate(v.week))}
+          values={volume.map((v) => v.volume)}
+          tip={(i) => ({ title: `Тиждень з ${fmtDate(volume[i].week, 'full')}`, lines: [`${volume[i].volume.toLocaleString('uk-UA')} кг`, `${volume[i].sets} підходів`] })}
+        />
         <p className="lg-muted chart-note">Сума вага × повтори за виконаними підходами, з понеділка по неділю.</p>
       </Glass>
 
