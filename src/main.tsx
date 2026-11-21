@@ -5,10 +5,12 @@ import App from './App.tsx'
 import './index.css'
 import { requestPersistentStorage } from './data/backup'
 import { seedIfEmpty } from './data/seed'
+import { initScanJobs } from './measure/scanJobs'
 
 // Fire-and-forget: live queries re-render once seeding commits; render never waits.
 seedIfEmpty().catch((err: unknown) => console.error('Не вдалося заповнити базу', err))
 void requestPersistentStorage()
+initScanJobs()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

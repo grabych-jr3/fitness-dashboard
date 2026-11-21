@@ -169,3 +169,21 @@ export interface PersonalRecord {
 }
 
 export type MuscleVolume = Record<MuscleGroup, number>
+
+/** A receipt photo being recognised (or waiting for the user to confirm). Not backed up. */
+export interface ScanDraft {
+  id?: number
+  photoId: number
+  createdAt: number
+  status: 'processing' | 'done' | 'error'
+  /** Recognition attempts so far (a background tab or a killed app restarts it). */
+  attempts: number
+  result?: {
+    values: Record<string, string> & { date: string }
+    issues: { field: string; message: string }[]
+    confidence?: number
+    source?: string
+    note?: string
+  }
+  error?: string
+}

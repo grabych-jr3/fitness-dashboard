@@ -3,12 +3,17 @@ import { db } from '../data/db.ts'
 import { toIsoDate } from '../data/dates.ts'
 import { Button, Sheet } from '../glass'
 import type { ParseIssue } from '../ocr/types.ts'
+import { completeScan } from './scanJobs.ts'
 import { FAT_FIELDS, LEAN_FIELDS, MAIN_FIELDS, toScan, type FieldDef, type FormValues } from './scanForm.ts'
 
 export type EditorInput = {
   values: FormValues
   issues: ParseIssue[]
   photo?: Blob
+  /** Photo already stored (background scan) — used instead of `photo`. */
+  photoId?: number
+  /** Background scan draft this editor finalises. */
+  draftId?: number
   confidence?: number
   /** Editing an existing scan instead of adding a new one. */
   scanId?: number
@@ -63,8 +68,8 @@ export default function ScanEditor({ input, onClose }: { input: EditorInput | nu
     setSaving(true)
     try {
       await db.transaction('rw', [db.inbodyScans, db.photos], async () => {
-        let photoId: number | undefined
-        if (input.photo) photoId = (await db.photos.add({ blob: input.photo, createdAt: Date.now() })) as number
+        let photoId: number | undefined = input.photoId
+        if (photoId === undefined && input.photo) photoId = (await db.photos.add({ blob: input.photo, createdAt: Date.now() })) as number
         if (input.scanId !== undefined) {
           const old = await db.inbodyScans.get(input.scanId)
           await db.inbodyScans.put({ ...old, ...res.scan, id: input.scanId, photoId: photoId ?? old?.photoId, createdAt: old?.createdAt ?? Date.now() })
@@ -72,12 +77,13 @@ export default function ScanEditor({ input, onClose }: { input: EditorInput | nu
           // One scan per date: a new scan for the same day replaces the old one.
           const same = await db.inbodyScans.where('date').equals(res.scan.date).toArray()
           for (const s of same) {
-            if (s.photoId) await db.photos.delete(s.photoId)
+            if (s.photoId && s.photoId !== photoId) await db.photos.delete(s.photoId)
             await db.inbodyScans.delete(s.id!)
           }
           await db.inbodyScans.add({ ...res.scan, photoId, ocrConfidence: input.confidence, createdAt: Date.now() })
         }
       })
+      if (input.draftId !== undefined) await completeScan(input.draftId)
       onClose()
     } finally {
       setSaving(false)

@@ -1,5 +1,5 @@
 import { Dexie, type EntityTable } from 'dexie'
-import type { Exercise, InbodyScan, Photo, Settings, Template, WeighIn, Workout, WorkoutSet } from './types'
+import type { Exercise, InbodyScan, Photo, ScanDraft, Settings, Template, WeighIn, Workout, WorkoutSet } from './types'
 
 export const DB_NAME = 'fitness-dashboard'
 export const SCHEMA_VERSION = 1
@@ -13,6 +13,7 @@ export class FitnessDb extends Dexie {
   workouts!: EntityTable<Workout, 'id'>
   sets!: EntityTable<WorkoutSet, 'id'>
   settings!: EntityTable<Settings, 'id'>
+  drafts!: EntityTable<ScanDraft, 'id'>
 
   constructor(name = DB_NAME) {
     super(name)
@@ -28,6 +29,8 @@ export class FitnessDb extends Dexie {
       sets: '++id, workoutId, exerciseId, [workoutId+exerciseId], [exerciseId+workoutId]',
       settings: 'id',
     })
+    // v2: receipt recognition runs in the background and survives tab switches / app restarts.
+    this.version(2).stores({ drafts: '++id, createdAt, status' })
   }
 }
 
