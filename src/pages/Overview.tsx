@@ -39,8 +39,17 @@ export default function Overview() {
       ? Math.max(0, Math.min(100, ((current.weight - start.weight) / (goal - start.weight)) * 100))
       : current && start ? 100 : 0
 
+  const backupDays = settings.lastBackupAt ? (Date.now() - settings.lastBackupAt) / 86400000 : Infinity
+  const scansCount = scans?.length ?? 0
+
   return (
     <Page title="Огляд">
+      {backupDays > 30 && scansCount > 1 && (
+        <Glass padded small className="backup-nudge">
+          <span>{settings.lastBackupAt ? 'Бекапу не було понад місяць.' : 'Ти ще не робив бекап даних.'}</span>
+          <Link to="/settings">Зробити →</Link>
+        </Glass>
+      )}
       <Glass padded className="goal-card">
         <div className="lg-row">
           <div>

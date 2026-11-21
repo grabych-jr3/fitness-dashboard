@@ -1,6 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Page from '../components/Page.tsx'
+import { BackupValidationError, backupFileName, exportAllAsBlob, importAll, readBackupFile } from '../data/backup.ts'
+import { db } from '../data/db.ts'
+import { updateSettings, useExercises, useSettings } from '../data/hooks.ts'
+import { muscleGroupLabels } from '../data/seed.ts'
+import { MUSCLE_GROUPS, type MuscleGroup } from '../data/types.ts'
 import { Button, Glass, Segmented, Sheet, useTheme, type ThemeMode } from '../glass'
+import { fmtDate } from '../lib/format.ts'
 
 const themeOptions: { value: ThemeMode; label: string }[] = [
   { value: 'system', label: 'Системна' },
@@ -8,9 +14,189 @@ const themeOptions: { value: ThemeMode; label: string }[] = [
   { value: 'dark', label: 'Темна' },
 ]
 
+/** Number field that saves on blur when the value is valid. */
+function NumberSetting({ label, value, min, max, step = 1, unit, onSave }: { label: string; value: number; min: number; max: number; step?: number; unit: string; onSave: (v: number) => void }) {
+  const [text, setText] = useState(String(value))
+  useEffect(() => setText(String(value)), [value])
+  return (
+    <label className="lg-field">
+      {label}
+      <div className="lg-row">
+        <input
+          className="lg-input"
+          inputMode="decimal"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={() => {
+            const v = Number(text.replace(',', '.'))
+            if (Number.isFinite(v) && v >= min && v <= max) onSave(Math.round(v / step) * step)
+            else setText(String(value))
+          }}
+          style={{ flex: 1 }}
+        />
+        <span className="lg-muted">{unit}</span>
+      </div>
+    </label>
+  )
+}
+
+function Backup() {
+  const settings = useSettings()
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [pending, setPending] = useState<unknown>(null)
+
+  const doExport = async () => {
+    setMsg(null)
+    try {
+      const blob = await exportAllAsBlob()
+      const name = backupFileName()
+      const file = new File([blob], name, { type: 'application/json' })
+      if (navigator.canShare?.({ files: [file] })) {
+        // iPhone: share sheet → "Зберегти у Файли" / iCloud Drive.
+        await navigator.share({ files: [file], title: 'Бекап фітнес-дашборду' })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = name
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(url), 5000)
+      }
+      await updateSettings({ lastBackupAt: Date.now() })
+      setMsg({ ok: true, text: 'Бекап збережено.' })
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return
+      setMsg({ ok: false, text: 'Не вдалося зробити бекап.' })
+    }
+  }
+
+  const onPick = async (file: File | undefined) => {
+    if (!file) return
+    try {
+      setPending(await readBackupFile(file))
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof BackupValidationError ? e.message : 'Це не схоже на файл бекапу.' })
+    } finally {
+      if (fileInput.current) fileInput.current.value = ''
+    }
+  }
+
+  const doImport = async () => {
+    try {
+      await importAll(pending, { mode: 'replace' })
+      setMsg({ ok: true, text: 'Дані відновлено з бекапу.' })
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof BackupValidationError ? e.message : 'Не вдалося відновити дані.' })
+    } finally {
+      setPending(null)
+    }
+  }
+
+  return (
+    <Glass padded>
+      <h2 className="lg-h2">Бекап</h2>
+      <p className="lg-muted set-text">
+        Усі дані лежать тільки на цьому телефоні. Якщо видалити застосунок з початкового екрана, вони зникнуть — тож раз на місяць збережи
+        бекап у Файли або iCloud Drive.
+        {settings.lastBackupAt ? ` Останній бекап: ${fmtDate(new Date(settings.lastBackupAt).toISOString().slice(0, 10), 'full')}.` : ' Бекапу ще не було.'}
+      </p>
+      <div className="lg-grid-2">
+        <Button variant="primary" onClick={doExport}>
+          Зберегти
+        </Button>
+        <Button onClick={() => fileInput.current?.click()}>Відновити</Button>
+      </div>
+      <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={(e) => onPick(e.target.files?.[0])} />
+      {msg && <p className={msg.ok ? 'set-ok' : 'form-error'}>{msg.text}</p>}
+      <Sheet open={pending !== null} onClose={() => setPending(null)} title="Відновити з бекапу?">
+        <div className="lg-stack">
+          <p className="lg-muted" style={{ margin: 0, textAlign: 'center' }}>
+            Поточні дані на телефоні буде повністю замінено даними з файлу.
+          </p>
+          <Button variant="primary" block onClick={doImport}>
+            Відновити
+          </Button>
+          <Button block onClick={() => setPending(null)}>
+            Скасувати
+          </Button>
+        </div>
+      </Sheet>
+    </Glass>
+  )
+}
+
+function Exercises() {
+  const exercises = useExercises({ includeArchived: true })
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [group, setGroup] = useState<MuscleGroup>('chest')
+  const [error, setError] = useState<string | null>(null)
+
+  const add = async () => {
+    const n = name.trim()
+    if (n.length < 2) return setError('Введи назву.')
+    if ((exercises ?? []).some((e) => e.name.toLowerCase() === n.toLowerCase())) return setError('Така вправа вже є.')
+    await db.exercises.add({ name: n, primary: [group], secondary: [], archived: false })
+    setName('')
+    setError(null)
+    setOpen(false)
+  }
+
+  return (
+    <Glass padded>
+      <div className="lg-row">
+        <h2 className="lg-h2" style={{ margin: 0 }}>
+          Вправи
+        </h2>
+        <div className="lg-spacer" />
+        <button type="button" className="ex-link" onClick={() => setOpen(true)}>
+          + Додати
+        </button>
+      </div>
+      <p className="lg-muted set-text">Приховані вправи не показуються при додаванні, але їхня історія лишається.</p>
+      <div className="scan-list">
+        {(exercises ?? []).map((e) => (
+          <div key={e.id} className={'scan-row' + (e.archived ? ' ex-archived' : '')}>
+            <span>
+              {e.name}
+              <span className="lg-muted ex-groups"> · {e.primary.map((g) => muscleGroupLabels[g]).join(', ')}</span>
+            </span>
+            <button type="button" className="ex-link ex-link--muted" onClick={() => db.exercises.update(e.id!, { archived: !e.archived })}>
+              {e.archived ? 'Показати' : 'Сховати'}
+            </button>
+          </div>
+        ))}
+      </div>
+      <Sheet open={open} onClose={() => setOpen(false)} title="Нова вправа">
+        <div className="lg-stack">
+          <label className="lg-field">
+            Назва
+            <input className="lg-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Наприклад, Жим у тренажері" />
+          </label>
+          <label className="lg-field">
+            Основна група м'язів
+            <select className="lg-input" value={group} onChange={(e) => setGroup(e.target.value as MuscleGroup)}>
+              {MUSCLE_GROUPS.map((g) => (
+                <option key={g} value={g}>
+                  {muscleGroupLabels[g]}
+                </option>
+              ))}
+            </select>
+          </label>
+          {error && <p className="form-error">{error}</p>}
+          <Button variant="primary" block onClick={add}>
+            Додати
+          </Button>
+        </div>
+      </Sheet>
+    </Glass>
+  )
+}
+
 export default function Settings() {
   const [theme, setTheme] = useTheme()
-  const [sheet, setSheet] = useState(false)
+  const settings = useSettings()
 
   return (
     <Page title="Налаштування">
@@ -19,29 +205,36 @@ export default function Settings() {
           <span className="lg-label">Тема</span>
           <Segmented label="Тема" options={themeOptions} value={theme} onChange={setTheme} />
         </div>
-        <div className="set-row">
-          <span className="lg-label">Інше</span>
-          <p className="lg-muted" style={{ margin: 0 }}>
-            Ціль ваги, вправи й шаблони, експорт та імпорт даних з'являться на етапі 3.
-          </p>
-          <Button onClick={() => setSheet(true)}>Показати приклад вікна</Button>
+      </Glass>
+
+      <Glass padded>
+        <h2 className="lg-h2">Цілі</h2>
+        <div className="lg-stack">
+          <NumberSetting label="Цільова вага" value={settings.goalWeight} min={40} max={200} step={0.1} unit="кг" onSave={(goalWeight) => updateSettings({ goalWeight })} />
+          <div className="lg-grid-2">
+            <NumberSetting
+              label="Підходів на групу: від"
+              value={settings.weeklySetTarget.min}
+              min={1}
+              max={settings.weeklySetTarget.max}
+              unit=""
+              onSave={(min) => updateSettings({ weeklySetTarget: { ...settings.weeklySetTarget, min } })}
+            />
+            <NumberSetting
+              label="до"
+              value={settings.weeklySetTarget.max}
+              min={settings.weeklySetTarget.min}
+              max={60}
+              unit=""
+              onSave={(max) => updateSettings({ weeklySetTarget: { ...settings.weeklySetTarget, max } })}
+            />
+          </div>
+          <NumberSetting label="Відпочинок між підходами" value={settings.restSeconds} min={15} max={600} step={5} unit="сек" onSave={(restSeconds) => updateSettings({ restSeconds })} />
         </div>
       </Glass>
 
-      <Sheet open={sheet} onClose={() => setSheet(false)} title="Приклад вікна">
-        <div className="lg-stack">
-          <p className="lg-muted" style={{ margin: 0 }}>
-            Так виглядатимуть форми: новий замір, підхід, підтвердження розпізнаних цифр.
-          </p>
-          <label className="lg-field">
-            Вага, кг
-            <input className="lg-input" inputMode="decimal" placeholder="77.4" />
-          </label>
-          <Button variant="primary" block onClick={() => setSheet(false)}>
-            Готово
-          </Button>
-        </div>
-      </Sheet>
+      <Backup />
+      <Exercises />
 
       <p className="lg-muted version">Версія {__APP_VERSION__}</p>
     </Page>
