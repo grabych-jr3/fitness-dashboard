@@ -1,0 +1,57 @@
+/* Workout history list */
+.hist-head { align-items: baseline; }
+.hist-head .lg-h2 { margin: 0; }
+.hist-total { font-size: 13px; }
+.hist-month { margin-top: 14px; }
+.hist-month-label { margin-bottom: 2px; }
+.hist-row {
+  appearance: none;
+  width: 100%;
+  background: none;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  align-items: center;
+  justify-content: flex-start;
+  cursor: pointer;
+  border-radius: 0;
+  transition: opacity 0.2s;
+}
+.hist-row:active { opacity: 0.6; }
+.hist-date { flex: 0 0 34px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+.hist-day { font: 600 20px/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.hist-dow { font-size: 12px; }
+.hist-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hist-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-meta { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-chevron { color: var(--muted); font-size: 22px; line-height: 1; }
+.hist-more { margin-top: 12px; }
+
+/* Workout detail sheet */
+.wd-date { margin: -8px 0 0; text-align: center; color: var(--fg-2); font-size: 15px; }
+.wd-date::first-letter { text-transform: uppercase; }
+.wd-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; text-align: center; }
+.wd-stats .lg-label { font-size: 11px; letter-spacing: 0.02em; }
+.wd-stat { margin-top: 2px; font: 600 16px/1.2 var(--font-display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wd-list { display: flex; flex-direction: column; }
+.wd-ex { padding: 12px 0; border-top: 1px solid var(--separator); }
+.wd-ex-head { display: flex; align-items: baseline; gap: 10px; }
+.wd-ex-name { flex: 1; min-width: 0; font-size: 17px; }
+.wd-e1rm { flex: none; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.wd-sets { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.wd-set { display: flex; align-items: center; gap: 10px; min-height: 30px; padding: 2px 8px 2px 0; border-radius: 10px; font-size: 15px; font-variant-numeric: tabular-nums; }
+.wd-set--pr { background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.wd-num { width: 28px; flex: none; }
+.wd-load { font-weight: 600; }
+.wd-pain { color: var(--warn); font-size: 14px; }
+.wd-badge { flex: none; font-size: 12px; font-weight: 700; color: #fff; background: var(--ok); border-radius: 999px; padding: 3px 9px; }
+.wd-prev { margin: 8px 0 0; font-size: 13px; }
+.wd-delta { font-weight: 600; white-space: nowrap; }
+.wd-delta--up { color: var(--ok); }
+.wd-delta--down { color: var(--bad); }
+.wd-delta--same { color: var(--muted); }
+.wd-confirm { margin: 0; text-align: center; }
+.lg-btn.wd-danger { background: linear-gradient(180deg, color-mix(in srgb, var(--bad) 88%, white), var(--bad)); box-shadow: 0 8px 24px color-mix(in srgb, var(--bad) 35%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.45); }

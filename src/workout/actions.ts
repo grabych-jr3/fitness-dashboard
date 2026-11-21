@@ -2,6 +2,7 @@ import { db } from '../data/db.ts'
 import { toIsoDate } from '../data/dates.ts'
 import { lastPerformance } from '../data/queries.ts'
 import type { WorkoutSet } from '../data/types.ts'
+import { doneExerciseOrder } from './history.ts'
 
 const DEFAULT_SETS = 3
 const DEFAULT_REPS = 10
@@ -121,3 +122,26 @@ export async function discardWorkout(workoutId: number): Promise<void> {
 
 /** Deletes a finished workout from history. */
 export const deleteWorkout = discardWorkout
+
+/**
+ * Starts a new workout with the same exercises as a past one: from its template
+ * if that still exists, otherwise a free workout with the same exercises in the
+ * same order and the same number of sets (prefilled from the last time).
+ * Returns the new workout id, or undefined if the source workout is gone.
+ */
+export async function repeatWorkout(workoutId: number): Promise<number | undefined> {
+  const source = await db.workouts.get(workoutId)
+  if (!source) return undefined
+  if (source.templateId !== undefined && (await db.templates.get(source.templateId))) return startWorkout(source.templateId)
+
+  const sets = (await db.sets.where('workoutId').equals(workoutId).toArray()).filter((s) => s.done)
+  const id = await startWorkout()
+  for (const exerciseId of doneExerciseOrder(sets)) {
+    await addExercise(id, exerciseId)
+    const want = sets.filter((s) => s.exerciseId === exerciseId).length
+    const have = await db.sets.where('[workoutId+exerciseId]').equals([id, exerciseId]).sortBy('setIndex')
+    for (let i = have.length; i < want; i++) await addSet(id, exerciseId)
+    for (const extra of have.slice(want).reverse()) await removeSet(extra.id!)
+  }
+  return id
+}
