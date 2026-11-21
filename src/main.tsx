@@ -6,11 +6,13 @@ import './index.css'
 import { requestPersistentStorage } from './data/backup'
 import { seedIfEmpty } from './data/seed'
 import { initScanJobs } from './measure/scanJobs'
+import { initViewportHeal } from './lib/viewportHeal'
 
 // Fire-and-forget: live queries re-render once seeding commits; render never waits.
 seedIfEmpty().catch((err: unknown) => console.error('Не вдалося заповнити базу', err))
 void requestPersistentStorage()
 initScanJobs()
+initViewportHeal()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

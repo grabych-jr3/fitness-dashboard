@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Radar } from 'react-chartjs-2'
 import { useChartTheme } from '../charts/useChartTheme.ts'
+import { CHART_DPR, useReleaseCanvas } from '../charts/useReleaseCanvas.ts'
 import { addDays, weekRange } from '../data/dates.ts'
 import { useSettings, useWeeklyMuscleVolume } from '../data/hooks.ts'
 import { muscleGroupLabels } from '../data/seed.ts'
@@ -13,6 +14,7 @@ type Week = 'this' | 'last'
 
 export default function BalanceTab() {
   const t = useChartTheme()
+  const radarRef = useReleaseCanvas<'radar'>()
   const settings = useSettings()
   const [week, setWeek] = useState<Week>('this')
   const thisWeek = weekRange()
@@ -51,6 +53,7 @@ export default function BalanceTab() {
           <>
             <div style={{ height: 280 }} role="img" aria-label="Радар: підходи за тиждень на кожну групу м'язів">
               <Radar
+                ref={radarRef}
                 data={{
                   labels: MUSCLE_GROUPS.map((g) => muscleGroupLabels[g]),
                   datasets: [
@@ -77,6 +80,7 @@ export default function BalanceTab() {
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
+                  devicePixelRatio: CHART_DPR,
                   plugins: { legend: { display: false }, tooltip: { callbacks: { label: (i) => ` ${i.dataset.label}: ${fmt(Number(i.raw), 1)}` } } },
                   scales: {
                     r: {

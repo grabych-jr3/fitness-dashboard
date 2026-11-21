@@ -26,7 +26,7 @@ export default function GoalSheet({ open, onClose }: { open: boolean; onClose: (
       <div className="lg-stack">
         <label className="lg-field">
           Цільова вага, кг
-          <input className="lg-input" inputMode="decimal" value={text} onChange={(e) => setText(e.target.value)} autoFocus />
+          <input className="lg-input" inputMode="decimal" value={text} onChange={(e) => setText(e.target.value)} />
         </label>
         {error && <p className="form-error">{error}</p>}
         <Button variant="primary" block onClick={save}>

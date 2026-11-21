@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Page from '../components/Page.tsx'
 import WeighInSheet from '../components/WeighInSheet.tsx'
@@ -13,13 +13,6 @@ import DraftCard from '../measure/DraftCard.tsx'
 import ScanEditor, { type EditorInput } from '../measure/ScanEditor.tsx'
 import { startScan } from '../measure/scanJobs.ts'
 import { emptyValues, valuesFromScan, type FormValues } from '../measure/scanForm.ts'
-function Thumb({ photoId }: { photoId?: number }) {
-  const blob = useLiveQuery(async () => (photoId ? (await db.photos.get(photoId))?.blob : undefined), [photoId])
-  const url = useMemo(() => (blob ? URL.createObjectURL(blob) : null), [blob])
-  useEffect(() => () => void (url && URL.revokeObjectURL(url)), [url])
-  return url ? <img className="scan-thumb" src={url} alt="" /> : <div className="scan-thumb scan-thumb--empty">📄</div>
-}
-
 export default function Measurements() {
   const scans = useScans()
   const camera = useRef<HTMLInputElement>(null)
@@ -96,7 +89,6 @@ export default function Measurements() {
           <div className="scan-list">
             {[...scans].reverse().map((s) => (
               <div key={s.id} className="scan-item">
-                <Thumb photoId={s.photoId} />
                 <button type="button" className="scan-item-main" onClick={() => setEditor({ values: valuesFromScan(s), issues: [], scanId: s.id })}>
                   <span className="scan-item-date">{fmtDate(s.date, 'full')}</span>
                   <span className="lg-muted">
@@ -117,17 +109,14 @@ export default function Measurements() {
       <Sheet open={remove !== null} onClose={() => setRemove(null)} title="Видалити замір?">
         <div className="lg-stack">
           <p className="lg-muted" style={{ margin: 0, textAlign: 'center' }}>
-            {remove && `Замір від ${fmtDate(remove.date, 'full')} і його фото буде видалено.`}
+            {remove && `Замір від ${fmtDate(remove.date, 'full')} буде видалено.`}
           </p>
           <Button
             variant="primary"
             block
             onClick={async () => {
               if (remove) {
-                await db.transaction('rw', [db.inbodyScans, db.photos], async () => {
-                  if (remove.photoId) await db.photos.delete(remove.photoId)
-                  await db.inbodyScans.delete(remove.id!)
-                })
+                await db.inbodyScans.delete(remove.id!)
               }
               setRemove(null)
             }}

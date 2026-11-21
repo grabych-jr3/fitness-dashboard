@@ -41,7 +41,6 @@ export default function WeighInSheet({ open, onClose }: { open: boolean; onClose
               className="lg-input"
               inputMode="decimal"
               placeholder="77.4"
-              autoFocus
               value={weight}
               onChange={(e) => setWeight(e.target.value)}
             />

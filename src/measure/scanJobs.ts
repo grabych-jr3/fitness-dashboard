@@ -64,20 +64,32 @@ export async function retryScan(id: number): Promise<void> {
   void run(id)
 }
 
-/** Removes a draft and its photo (the photo is kept if a saved scan uses it). */
+/** Removes a draft and its photo. */
 export async function discardScan(id: number): Promise<void> {
-  await db.transaction('rw', [db.drafts, db.photos, db.inbodyScans], async () => {
+  await db.transaction('rw', [db.drafts, db.photos], async () => {
     const d = await db.drafts.get(id)
     await db.drafts.delete(id)
-    if (d && (await db.inbodyScans.filter((s) => s.photoId === d.photoId).count()) === 0) await db.photos.delete(d.photoId)
+    if (d) await db.photos.delete(d.photoId)
   })
   setProgress(id, null)
 }
 
-/** The draft became a saved scan: drop the draft, keep the photo. */
-export async function completeScan(id: number): Promise<void> {
-  await db.drafts.delete(id)
-  setProgress(id, null)
+/** The draft became a saved scan: the photo isn't needed any more. */
+export const completeScan = discardScan
+
+/**
+ * Receipt photos are kept only while a scan is pending. Removes any other stored
+ * photos (from older versions that kept them with every scan).
+ */
+export async function cleanupPhotos(): Promise<void> {
+  await db.transaction('rw', [db.photos, db.drafts, db.inbodyScans], async () => {
+    const keep = new Set((await db.drafts.toArray()).map((d) => d.photoId))
+    const stale = (await db.photos.toCollection().primaryKeys()).filter((id) => !keep.has(id as number))
+    if (stale.length) await db.photos.bulkDelete(stale)
+    await db.inbodyScans.filter((s) => s.photoId !== undefined).modify((s) => {
+      delete s.photoId
+    })
+  })
 }
 
 const withTimeout = <T,>(p: Promise<T>, ms: number, controller?: AbortController) =>
@@ -184,6 +196,7 @@ async function recognize(id: number, file: Blob, aiKey?: string, aiModel?: strin
 
 /** Wires automatic resume: at start-up and whenever the app becomes visible again. */
 export function initScanJobs() {
+  void cleanupPhotos().catch((e) => console.error(e))
   void resumePendingScans()
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') void resumePendingScans()

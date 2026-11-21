@@ -76,7 +76,7 @@ describe('background scans', () => {
     expect(d.result?.note).toContain('Використано звичайне розпізнавання')
   })
 
-  it('discard removes draft and photo; complete keeps the photo', async () => {
+  it('discard and complete both remove the draft and its photo', async () => {
     gemini.impl = async () => ({ parsed: parseInbodyText(CLEAN), model: 'm' })
     const a = await startScan(photo())
     const b = await startScan(photo())
@@ -87,6 +87,20 @@ describe('background scans', () => {
     await completeScan(b)
     expect(await db.drafts.count()).toBe(0)
     expect(await db.photos.get(pa)).toBeUndefined()
-    expect(await db.photos.get(pb)).toBeDefined()
+    expect(await db.photos.get(pb)).toBeUndefined()
+  })
+})
+
+describe('cleanupPhotos', () => {
+  it('keeps only photos of pending drafts and unlinks scans', async () => {
+    const { cleanupPhotos } = await import('./scanJobs.ts')
+    const old = (await db.photos.add({ blob: photo(), createdAt: 1 })) as number
+    const pending = (await db.photos.add({ blob: photo(), createdAt: 2 })) as number
+    await db.drafts.add({ photoId: pending, createdAt: 2, status: 'error', attempts: 3 })
+    await db.inbodyScans.add({ date: '2026-11-01', weight: 77.4, muscle: 41.4, fatKg: 5.6, pbf: 7.2, lean: { ra: null, la: null, tr: null, rl: null, ll: null }, fat: { ra: null, la: null, tr: null, rl: null, ll: null }, photoId: old, createdAt: 1 })
+    await cleanupPhotos()
+    expect(await db.photos.get(old)).toBeUndefined()
+    expect(await db.photos.get(pending)).toBeDefined()
+    expect((await db.inbodyScans.toArray())[0].photoId).toBeUndefined()
   })
 })

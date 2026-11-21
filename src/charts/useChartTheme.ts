@@ -1,5 +1,6 @@
 import { CategoryScale, Chart, Filler, LinearScale, LineElement, PointElement, Tooltip, BarElement, RadialLinearScale, Legend } from 'chart.js'
 import { useEffect, useState } from 'react'
+import { CHART_DPR } from './useReleaseCanvas.ts'
 
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, RadialLinearScale, Filler, Tooltip, Legend)
 Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif"
@@ -53,6 +54,7 @@ export function baseOptions(t: ChartTheme) {
   return {
     responsive: true,
     maintainAspectRatio: false,
+    devicePixelRatio: CHART_DPR,
     interaction: { mode: 'index' as const, intersect: false },
     plugins: {
       legend: { display: false, labels: { color: t.fg, usePointStyle: true, boxWidth: 8, boxHeight: 8 } },

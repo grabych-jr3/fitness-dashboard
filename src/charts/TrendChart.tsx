@@ -1,6 +1,7 @@
 import { Line } from 'react-chartjs-2'
 import { fmtDate } from '../lib/format.ts'
 import { baseOptions, useChartTheme } from './useChartTheme.ts'
+import { useReleaseCanvas } from './useReleaseCanvas.ts'
 
 export type Series = { label: string; values: (number | null)[]; color?: 'accent' | 'accent2' | 'pink' | 'orange'; unit?: string }
 
@@ -27,6 +28,7 @@ export default function TrendChart({
   dualAxis?: boolean
 }) {
   const t = useChartTheme()
+  const chartRef = useReleaseCanvas<'line'>()
   const opts = baseOptions(t)
   const single = dates.length === 1
 
@@ -71,6 +73,7 @@ export default function TrendChart({
   return (
     <div style={{ height }} role="img" aria-label={label}>
       <Line
+        ref={chartRef}
         data={{ labels: dates.map((d) => fmtDate(d)), datasets }}
         options={{
           ...opts,
