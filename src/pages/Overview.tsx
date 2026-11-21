@@ -33,6 +33,9 @@ export default function Overview() {
   const latest = scans?.at(-1)
   const prev = scans && scans.length > 1 ? scans.at(-2) : undefined
   const current = series?.at(-1)
+  // Weight change is against the previous weight of any kind (scan or weigh-in), so the
+  // card always agrees with the goal card above.
+  const prevPoint = series && series.length > 1 ? series.at(-2) : undefined
   const start = series?.[0]
   const goal = settings.goalWeight
   const toGoal = current ? goal - current.weight : null
@@ -94,11 +97,18 @@ export default function Overview() {
 
       <div className="section-head">
         <h2 className="lg-h2">Склад тіла</h2>
-        <span className="lg-muted section-meta">{latest ? `InBody · ${fmtDate(latest.date, 'full')}` : ''}</span>
+        <span className="lg-muted section-meta">{latest ? `м'язи і жир — InBody ${fmtDate(latest.date, 'full')}` : ''}</span>
       </div>
       {latest ? (
         <div className="lg-grid-2">
-          <StatCard label="Вага" value={latest.weight} unit="кг" delta={diff(latest.weight, prev?.weight)} good="up" />
+          <StatCard
+            label="Вага"
+            value={current?.weight ?? latest.weight}
+            unit="кг"
+            delta={diff(current?.weight, prevPoint?.weight)}
+            good="up"
+            note={current ? `${current.source === 'weighIn' ? 'зважування' : 'InBody'} · ${fmtDate(current.date)}` : undefined}
+          />
           <StatCard label="М'язи" value={latest.muscle} unit="кг" delta={diff(latest.muscle, prev?.muscle)} good="up" />
           <StatCard label="Жир" value={latest.pbf} unit="%" delta={diff(latest.pbf, prev?.pbf)} />
           <StatCard label="Жирова маса" value={latest.fatKg} unit="кг" delta={diff(latest.fatKg, prev?.fatKg)} />
