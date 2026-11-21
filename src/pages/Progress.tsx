@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import TrendChart from '../charts/TrendChart.tsx'
 import Page, { Placeholder } from '../components/Page.tsx'
+import StrengthTab from '../progress/StrengthTab.tsx'
 import { useScans, useSettings, useWeightSeries } from '../data/hooks.ts'
 import type { InbodyScan, Segments } from '../data/types.ts'
 import { Glass, Segmented } from '../glass'
@@ -128,7 +129,7 @@ export default function Progress() {
         ]}
       />
       {tab === 'body' && <BodyTab />}
-      {tab === 'strength' && <Placeholder stage={6} text="Графіки e1RM по кожній вправі, тижневий об'єм і рекорди." />}
+      {tab === 'strength' && <StrengthTab />}
       {tab === 'balance' && <Placeholder stage={7} text="Підходи за тиждень на кожну групу м'язів і що відстає." />}
     </Page>
   )
