@@ -184,8 +184,15 @@ export function parseNumericToken(token: string): NumToken | null {
   if (!cleaned) return null
   const m = NUM_CORE_RE.exec(cleaned)
   if (!m) return null
-  const [, core, rest] = m
-  if (rest && !UNIT_RE.test(rest)) return null
+  let [, core, rest] = m
+  // A trailing g/q glued after real digits is a misread unit ("774g" = 77.4 kg), not a 9.
+  const tail = /^(.*[0-9])([gq]+)$/.exec(core)
+  if (tail && (tail[1].match(/[0-9]/g) ?? []).length >= 2) {
+    core = tail[1]
+    rest = ''
+  }
+  // Units come out garbled on thermal paper ("kz", "ke", "hy", "kem-"): accept short letter-only tails.
+  if (rest && !UNIT_RE.test(rest) && !(((core.match(/[0-9]/g) ?? []).length >= 2 || /[.,]/.test(core)) && /^[A-Za-z¢%]{1,4}[-.,;:)]*$/.test(rest))) return null
   let digits = [...core].map((c) => DIGIT_FIX[c] ?? c).join('').replace(/,/g, '.').replace(/\.{2,}/g, '.')
   const seps = (digits.match(/\./g) ?? []).length
   if (seps > 1) digits = digits.replace(/\./g, '') // ambiguous, let range restoration decide
@@ -211,7 +218,21 @@ const round = (v: number, d: number) => Number(v.toFixed(d))
 
 /** Applies the field's plausible range to a token, restoring a lost decimal point if needed. */
 function interpret(tok: NumToken, spec: FieldSpec): Interpreted {
-  if (tok.hadSep) return { value: tok.value, inRange: inRange(tok.value, spec), restored: false }
+  if (tok.hadSep) {
+    // More decimals than InBody prints means a unit letter was read as a digit ("77.41" for "77.4 kg").
+    const frac = String(tok.value).split('.')[1] ?? ''
+    if (frac.length > spec.decimals && spec.decimals > 0) {
+      const v = Math.trunc(tok.value * 10 ** spec.decimals) / 10 ** spec.decimals
+      return { value: v, inRange: inRange(v, spec), restored: true }
+    }
+    return { value: tok.value, inRange: inRange(tok.value, spec), restored: false }
+  }
+  // A lost decimal point, and sometimes also a unit letter read as an extra digit ("7741" for "77.4 l").
+  const dropped = Math.trunc(tok.value / 10)
+  if (spec.decimals > 0 && !inRange(round(tok.value / 10 ** spec.decimals, spec.decimals), spec) && dropped >= 10) {
+    const v = round(dropped / 10 ** spec.decimals, spec.decimals)
+    if (inRange(v, spec)) return { value: v, inRange: true, restored: true }
+  }
   // InBody always prints the field's decimals, so a token without a separator
   // most likely lost its decimal point: try the expected position first.
   const order = [spec.decimals, 1, 2, 3, 0].filter((d, i, a) => a.indexOf(d) === i)
@@ -306,8 +327,27 @@ const DATE_RE = new RegExp(`(${DATE_PART}{1,2})\\s*/\\s*(${DATE_PART}{1,2})\\s*/
 
 const fixDigits = (s: string) => [...s].map((c) => DIGIT_FIX[c] ?? c).join('')
 
-/** Header date is MM/DD/YY. */
-function parseDate(lines: string[]): string | null {
+const LOOSE_DATE_RE = /b[o0]dy\s*1?7?0?\S*\s+(\d{1,2})\D{0,3}(\d{2})\D{1,3}(\d{2})\s+\d{1,2}\s*[:.]\s*\d{2}/i
+
+/** Header date is MM/DD/YY. Returns the date and whether the slashes had to be guessed. */
+function parseDate(lines: string[]): { date: string; loose: boolean } | null {
+  const strict = parseStrictDate(lines)
+  if (strict) return { date: strict, loose: false }
+  for (const l of lines.slice(0, 6)) {
+    const m = LOOSE_DATE_RE.exec(l)
+    if (!m) continue
+    const month = Number(m[1])
+    const day = Number(m[2])
+    const year = 2000 + Number(m[3])
+    const d = new Date(Date.UTC(year, month - 1, day))
+    if (month >= 1 && month <= 12 && day >= 1 && d.getUTCMonth() === month - 1 && d.getUTCDate() === day) {
+      return { date: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`, loose: true }
+    }
+  }
+  return null
+}
+
+function parseStrictDate(lines: string[]): string | null {
   const ordered = [
     ...lines.filter((l) => /b[o0]dy/i.test(l)),
     ...lines.slice(0, 6),
@@ -370,7 +410,7 @@ export function parseInbodyText(text: string): ParsedScan {
       if (!r.inRange) continue
       if (r.restored) {
         restoredCount++
-        issue(field, `${spec.name}: відновлено десяткову крапку («${t.raw}» → ${fmt(r.value)}), перевір.`)
+        issue(field, `${spec.name}: цифри прочитано нечітко («${t.raw}» → ${fmt(r.value)}), перевір.`)
       }
       return r.value
     }
@@ -381,7 +421,8 @@ export function parseInbodyText(text: string): ParsedScan {
   }
 
   const rawLines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
-  scan.date = parseDate(rawLines)
+  const parsedDate = parseDate(rawLines)
+  scan.date = parsedDate?.date ?? null
 
   let section: Section = 'header'
   const headerLines: Line[] = []
@@ -466,6 +507,7 @@ export function parseInbodyText(text: string): ParsedScan {
   const fieldsTotal = 1 + Object.keys(SCALAR_SPECS).length + SEGMENT_KEYS.length * 2
   let found = scan.date ? 1 : 0
   if (!scan.date) issue('date', 'Не вдалося розпізнати дату заміру.')
+  else if (parsedDate?.loose) issue('date', 'Дату прочитано нечітко, перевір.')
 
   for (const f of Object.keys(SCALAR_SPECS) as ScalarField[]) {
     const v = scan[f]

@@ -1,0 +1,37 @@
+TP100-1.3 115200
+InBody170 1  01 26 10:56
+ID      :
+
+Gender: Male       Age ‘20
+Height : 192.0 cn Weight: 77.41 ¢
+Body Composition Analysis
+Weight  774ke (689-933
+Muscle 414 kg     (35.1429
+Fat      56 hu     (97-195
+TBW     528 ¢      (456-358
+FFM       71.8 kg      (620-758
+Obesity Analysis
+BMI       210 kem- (185-250
+PBF        71.2%      (100-200
+WHR     0.89        (0.80 0.90
+Visceral Fat | level     (1-9
+BMR    1921 keal (1649-1933
+Segmental Lean
+Lean Sash Frabagtrs
+Right Arm                461          Over
+Left Arm                  4.77         Over
+Trunk                345       Over
+Right Leg         1191      Over
+Left Leg             1192       Over
+Segmental Fat
+FBF®e) Fat Manly Eralusoun
+Right Arm 22 (.]        Under
+Left Arm       al Oud       Under
+Trunk         5.3    23      Under
+Right Leg 79 1.1        Under
+Left Leg        1.8       Under
+8 Segowatal Far 5 exomated
+Muscle - Fat Control
+Muscle (00kg Fat +37);
+Fitness Score             79 Pouus
+

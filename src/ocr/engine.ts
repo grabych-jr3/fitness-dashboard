@@ -1,6 +1,7 @@
 import { createWorker, OEM, PSM, type Worker } from 'tesseract.js'
 import { parseInbodyText } from './parse'
-import { preprocessImage } from './preprocess'
+import { mergeParsed } from './merge'
+import { prepareOcrPasses } from './preprocess'
 import type { ParsedScan } from './types'
 
 /*
@@ -25,12 +26,14 @@ let workerPromise: Promise<Worker> | null = null
 let progressListener: OcrProgress | undefined
 /** Serialises jobs so progress callbacks never interleave. */
 let queue: Promise<unknown> = Promise.resolve()
+/** Share of the overall progress bar taken by the current recognition pass. */
+let passSlice = { from: 0.3, size: 0.65 }
 
 // Overall progress split: preprocess 0–0.1, load 0.1–0.3, recognize 0.3–0.95, parse → 1.
 function onTesseractLog(m: { status: string; progress: number }) {
   if (!progressListener) return
   const p = Math.max(0, Math.min(1, m.progress || 0))
-  if (m.status === 'recognizing text') progressListener(0.3 + 0.65 * p, 'recognize')
+  if (m.status === 'recognizing text') progressListener(passSlice.from + passSlice.size * p, 'recognize')
   else progressListener(0.1 + 0.2 * p, 'load')
 }
 
@@ -61,16 +64,24 @@ async function run(file: Blob, onProgress?: OcrProgress): Promise<{ text: string
   progressListener = onProgress
   try {
     onProgress?.(0, 'preprocess')
-    const canvas = await preprocessImage(file)
+    const canvases = await prepareOcrPasses(file)
     onProgress?.(0.1, 'load')
     const worker = await getWorker()
-    onProgress?.(0.3, 'recognize')
-    const { data } = await worker.recognize(canvas)
+    const texts: string[] = []
+    const passes: ParsedScan[] = []
+    for (const [i, canvas] of canvases.entries()) {
+      passSlice = { from: 0.3 + (0.65 * i) / canvases.length, size: 0.65 / canvases.length }
+      onProgress?.(passSlice.from, 'recognize')
+      const { data } = await worker.recognize(canvas)
+      texts.push(data.text ?? '')
+      passes.push(parseInbodyText(texts[i]))
+      // A clean first read needs no second opinion.
+      if (i === 0 && passes[0].issues.length === 0) break
+    }
     onProgress?.(0.95, 'parse')
-    const text = data.text ?? ''
-    const parsed = parseInbodyText(text)
+    const parsed = mergeParsed(passes)
     onProgress?.(1, 'done')
-    return { text, parsed }
+    return { text: texts.join('\n\n---\n\n'), parsed }
   } finally {
     progressListener = undefined
   }

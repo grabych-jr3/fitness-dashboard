@@ -123,6 +123,75 @@ export function grayToRgba(gray: Uint8ClampedArray, target?: Uint8ClampedArray):
   return out
 }
 
+/**
+ * Finds the receipt: the largest bright region (thermal paper) on a darker background.
+ * Works on a small grayscale copy; returns a box in the same pixel space, or null when
+ * no clear paper area is found (then the whole image is used).
+ */
+export function findPaperBounds(
+  gray: Uint8ClampedArray,
+  width: number,
+  height: number,
+): { x: number; y: number; width: number; height: number } | null {
+  if (width < 8 || height < 8) return null
+  // Brightness threshold: halfway between the image median and its bright end.
+  const hist = new Uint32Array(256)
+  for (const v of gray) hist[v]++
+  const pick = (q: number) => {
+    let acc = 0
+    const target = q * gray.length
+    for (let i = 0; i < 256; i++) if ((acc += hist[i]) >= target) return i
+    return 255
+  }
+  const median = pick(0.5)
+  const bright = pick(0.97)
+  if (bright - median < 30) return null
+  const t = (median + bright) / 2
+
+  const colShare = new Float32Array(width)
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) if (gray[y * width + x] > t) colShare[x]++
+  for (let x = 0; x < width; x++) colShare[x] /= height
+
+  // Longest run of columns where a good part of the column is paper.
+  const run = (share: Float32Array, min: number) => {
+    let best = [0, -1]
+    let start = -1
+    for (let i = 0; i <= share.length; i++) {
+      if (i < share.length && share[i] >= min) {
+        if (start < 0) start = i
+      } else if (start >= 0) {
+        if (i - 1 - start > best[1] - best[0]) best = [start, i - 1]
+        start = -1
+      }
+    }
+    return best[1] >= best[0] ? best : null
+  }
+  const cols = run(colShare, 0.25)
+  if (!cols) return null
+
+  const rowShare = new Float32Array(height)
+  const cw = cols[1] - cols[0] + 1
+  for (let y = 0; y < height; y++) {
+    let n = 0
+    for (let x = cols[0]; x <= cols[1]; x++) if (gray[y * width + x] > t) n++
+    rowShare[y] = n / cw
+  }
+  const rows = run(rowShare, 0.4)
+  if (!rows) return null
+
+  const margin = Math.round(Math.max(width, height) * 0.01)
+  const x = Math.max(0, cols[0] - margin)
+  const y = Math.max(0, rows[0] - margin)
+  const box = {
+    x,
+    y,
+    width: Math.min(width, cols[1] + margin + 1) - x,
+    height: Math.min(height, rows[1] + margin + 1) - y,
+  }
+  const area = (box.width * box.height) / (width * height)
+  return area > 0.03 && area < 0.9 ? box : null
+}
+
 /** Whole pixel pipeline on RGBA data: grayscale → contrast stretch → (optional) adaptive threshold. */
 export function processPixels(
   rgba: Uint8ClampedArray,
@@ -158,6 +227,51 @@ export async function preprocessImage(file: Blob, options: PreprocessOptions = {
     image.data.set(processPixels(image.data, width, height, options))
     ctx.putImageData(image, 0, 0)
     return canvas
+  } finally {
+    bitmap.close()
+  }
+}
+
+/**
+ * Browser only. Crops the photo to the receipt and returns one grayscale,
+ * contrast-stretched canvas per target size. Two sizes give Tesseract two
+ * independent reads of the faint digits; the results are merged afterwards.
+ */
+export async function prepareOcrPasses(file: Blob, longSides: readonly number[] = [2000, 3000]): Promise<HTMLCanvasElement[]> {
+  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
+  try {
+    // 1. Find the paper on a small copy.
+    const small = fitLongSide(bitmap.width, bitmap.height, 400)
+    const probe = document.createElement('canvas')
+    probe.width = small.width
+    probe.height = small.height
+    const pctx = probe.getContext('2d', { willReadFrequently: true })
+    if (!pctx) throw new Error('Canvas 2D недоступний')
+    pctx.drawImage(bitmap, 0, 0, small.width, small.height)
+    const gray = toGrayscale(pctx.getImageData(0, 0, small.width, small.height).data)
+    const box = findPaperBounds(gray, small.width, small.height)
+    const k = bitmap.width / small.width
+    const src = box
+      ? { x: box.x * k, y: box.y * k, width: box.width * k, height: box.height * k }
+      : { x: 0, y: 0, width: bitmap.width, height: bitmap.height }
+
+    // 2. Render the crop at each size, grayscale + contrast stretch (no binarisation:
+    //    Tesseract's own thresholding reads thermal paper better).
+    return longSides.map((target) => {
+      const size = fitLongSide(src.width, src.height, target)
+      const canvas = document.createElement('canvas')
+      canvas.width = size.width
+      canvas.height = size.height
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      if (!ctx) throw new Error('Canvas 2D недоступний')
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = 'high'
+      ctx.drawImage(bitmap, src.x, src.y, src.width, src.height, 0, 0, size.width, size.height)
+      const image = ctx.getImageData(0, 0, size.width, size.height)
+      image.data.set(processPixels(image.data, size.width, size.height, { threshold: false }))
+      ctx.putImageData(image, 0, 0)
+      return canvas
+    })
   } finally {
     bitmap.close()
   }

@@ -68,7 +68,7 @@ describe('parseInbodyText: noisy OCR variants', () => {
     expect(values(scan)).toEqual(EXPECTED)
     const flagged = scan.issues.map((i) => i.field).sort()
     expect(flagged).toEqual(['bmi', 'fat.tr', 'lean.ll', 'lean.ra', 'lean.tr', 'pbf', 'weight', 'whr'].sort())
-    expect(scan.issues.every((i) => i.message.includes('відновлено десяткову крапку'))).toBe(true)
+    expect(scan.issues.every((i) => i.message.includes('прочитано нечітко'))).toBe(true)
     expect(scan.confidence).toBeGreaterThan(0.8)
     expect(scan.confidence).toBeLessThan(1)
   })
