@@ -1,0 +1,39 @@
+TPl00-1.3 115200
+InBody170 1l/0l/26 l0:56
+ID :
+Gender: Male Age :2O
+Height : l92.0 cm Weight: 77.4 kg
+Body Compositlon Analysis
+Weight 77,4 kg (68.9~93.3)
+Musc1e 4l.4 kg (35.1~42.9)
+Fat S.6 kg (9.7~19.5)
+T8W 52.8 l (45.6~55.8)
+FFM 7l.8 kg (62.0~75.8)
+Obeslty Analysis
+8MI 2l.O kg/m2 (18.5~25.0)
+PBF 7.2 % (lO.0~20.0)
+WHR O.89 (0.80~0.90)
+Visceral Fat l level (1~9)
+BMR l92l kcal (1649~1933)
+Segmental Lean
+Lean Mass(kg) Evaluation
+Right Arm 4.6l Over
+Left Arm 4.77 0ver
+Trunk 34.S Over
+Right Leg ll.9l Over
+Left Leg 11.92 Over
+Segmenta1 Fat
+PBF(%) Fat Mass(kg) Evaluation
+Right Arm 2.2 O.l Under
+Left Arm 2.l 0.1 Under
+Trunk S.3 2.l Under
+Right Leg 7.9 l.1 Under
+Left Leg 7.8 1.l Under
+* Segmental Fat is estimated.
+Muscle - Fat Control
+Muscle 0.0 kg Fat +3.7 kg
+Fitness Score 79 Points
+Impedance
+RA LA TR RL LL
+20 276.6 267.4 26.3 288.9 287.4
+1O0 243.2 237.0 22.6 249.5 248.9
