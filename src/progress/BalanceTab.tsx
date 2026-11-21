@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import { Radar } from 'react-chartjs-2'
-import { useChartTheme } from '../charts/useChartTheme.ts'
-import { CHART_DPR, useReleaseCanvas } from '../charts/useReleaseCanvas.ts'
+import RadarChart from '../charts/RadarChart.tsx'
 import { addDays, weekRange } from '../data/dates.ts'
 import { useSettings, useWeeklyMuscleVolume } from '../data/hooks.ts'
 import { muscleGroupLabels } from '../data/seed.ts'
@@ -13,8 +11,6 @@ import { balanceRows } from './balance.ts'
 type Week = 'this' | 'last'
 
 export default function BalanceTab() {
-  const t = useChartTheme()
-  const radarRef = useReleaseCanvas<'radar'>()
   const settings = useSettings()
   const [week, setWeek] = useState<Week>('this')
   const thisWeek = weekRange()
@@ -51,50 +47,13 @@ export default function BalanceTab() {
           </p>
         ) : (
           <>
-            <div style={{ height: 280 }} role="img" aria-label="Радар: підходи за тиждень на кожну групу м'язів">
-              <Radar
-                ref={radarRef}
-                data={{
-                  labels: MUSCLE_GROUPS.map((g) => muscleGroupLabels[g]),
-                  datasets: [
-                    {
-                      label: 'Ціль (мін.)',
-                      data: MUSCLE_GROUPS.map(() => target.min),
-                      borderColor: t.muted,
-                      backgroundColor: 'transparent',
-                      borderDash: [5, 5],
-                      borderWidth: 1.5,
-                      pointRadius: 0,
-                    },
-                    {
-                      label: 'Підходи',
-                      data: MUSCLE_GROUPS.map((g) => volume[g]),
-                      borderColor: t.accent,
-                      backgroundColor: t.accent + '40',
-                      borderWidth: 2,
-                      pointRadius: 3,
-                      pointBackgroundColor: t.accent,
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  devicePixelRatio: CHART_DPR,
-                  plugins: { legend: { display: false }, tooltip: { callbacks: { label: (i) => ` ${i.dataset.label}: ${fmt(Number(i.raw), 1)}` } } },
-                  scales: {
-                    r: {
-                      min: 0,
-                      suggestedMax: scaleMax,
-                      angleLines: { color: t.grid },
-                      grid: { color: t.grid },
-                      pointLabels: { color: t.fg, font: { size: 11, weight: 600 } },
-                      ticks: { display: false, stepSize: 5 },
-                    },
-                  },
-                }}
-              />
-            </div>
+            <RadarChart
+              label="Радар: підходи за тиждень на кожну групу м'язів"
+              axes={MUSCLE_GROUPS.map((g) => muscleGroupLabels[g])}
+              values={MUSCLE_GROUPS.map((g) => volume[g])}
+              reference={target.min}
+              max={scaleMax}
+            />
             <p className={'bal-verdict ' + (low.length ? 'bal-warn' : 'stat-good')}>
               {low.length
                 ? `${week === 'this' ? 'Поки нижче цілі' : 'Було нижче цілі'}: ${low.map((r) => muscleGroupLabels[r.group].toLowerCase()).join(', ')}`

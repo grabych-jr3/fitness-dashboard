@@ -1,0 +1,42 @@
+/* SVG charts: colours come straight from the theme variables. */
+.svg-chart { position: relative; width: 100%; -webkit-user-select: none; user-select: none; touch-action: pan-y; }
+.svg-chart svg { display: block; overflow: visible; }
+.svg-grid { stroke: var(--separator); stroke-width: 1; }
+.svg-tick { fill: var(--muted); font-size: 11px; font-family: var(--font); font-variant-numeric: tabular-nums; }
+.svg-goal { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 6 6; }
+.svg-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.svg-dot { stroke: var(--glass-tint-strong); stroke-width: 1.5; }
+.svg-cursor { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.svg-bar { transition: opacity 0.2s; }
+.svg-bar.is-dim { opacity: 0.45; }
+.svg-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; font-weight: 600; color: var(--fg-2); height: 24px; align-items: center; }
+.svg-legend i, .svg-tip i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+.svg-tip {
+  position: absolute;
+  min-width: 140px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--fg);
+  background: var(--glass-tint-strong);
+  border: 1px solid var(--separator);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  font-variant-numeric: tabular-nums;
+}
+.svg-tip b { font-size: 12px; }
+@media (prefers-reduced-motion: no-preference) {
+  .svg-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: svg-draw 0.9s var(--lg-ease) 0.1s forwards; }
+  .svg-dot { animation: svg-pop 0.4s var(--lg-ease) both; }
+  .svg-bar { transform-box: fill-box; transform-origin: bottom; animation: svg-grow 0.6s var(--lg-ease) both; }
+  .svg-radar-area { transform-box: fill-box; transform-origin: center; animation: svg-pop 0.6s var(--lg-ease) both; }
+}
+@media (prefers-reduced-motion: reduce) { .svg-line { stroke-dasharray: none; } }
+@keyframes svg-draw { to { stroke-dashoffset: 0; } }
+@keyframes svg-pop { from { opacity: 0; transform: scale(0.6); } }
+@keyframes svg-grow { from { transform: scaleY(0); } }
+.svg-dot { transform-box: fill-box; transform-origin: center; }
+.svg-axis-label { fill: var(--fg); font-weight: 600; }
