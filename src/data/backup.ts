@@ -93,7 +93,9 @@ export async function exportAll(): Promise<BackupFile> {
       db.sets.toArray(),
       db.settings.toArray(),
     ])
-    return { inbodyScans, weighIns, photos, exercises, templates, workouts, sets, settings }
+    // The API key never leaves the phone, not even in a backup file.
+    const safeSettings = settings.map(({ aiKey: _omit, ...rest }) => rest as Settings)
+    return { inbodyScans, weighIns, photos, exercises, templates, workouts, sets, settings: safeSettings }
   })
 
   // Blob reading happens after the transaction (non-IndexedDB awaits would auto-commit it).
@@ -249,6 +251,9 @@ export async function importAll(file: unknown, options: ImportOptions = { mode: 
   }))
 
   await db.transaction('rw', TABLE_NAMES.map((n) => db.table(n)), async () => {
+    // Keep this phone's API key: backups never contain it.
+    const current = await db.settings.get('main')
+    const settings = t.settings.map((x) => ({ ...x, aiKey: current?.aiKey, aiModel: x.aiModel ?? current?.aiModel }))
     await Promise.all(TABLE_NAMES.map((n) => db.table(n).clear()))
     await Promise.all([
       db.inbodyScans.bulkAdd(t.inbodyScans),
@@ -258,7 +263,7 @@ export async function importAll(file: unknown, options: ImportOptions = { mode: 
       db.templates.bulkAdd(t.templates),
       db.workouts.bulkAdd(t.workouts),
       db.sets.bulkAdd(t.sets),
-      db.settings.bulkAdd(t.settings),
+      db.settings.bulkAdd(settings),
     ])
   })
 

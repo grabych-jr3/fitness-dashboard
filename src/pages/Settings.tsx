@@ -4,6 +4,7 @@ import { BackupValidationError, backupFileName, exportAllAsBlob, importAll, read
 import { updateSettings, useSettings } from '../data/hooks.ts'
 import { Button, Glass, Segmented, Sheet, useTheme, type ThemeMode } from '../glass'
 import { fmtDate } from '../lib/format.ts'
+import AiSettings from '../settings/AiSettings.tsx'
 import ExerciseEditor from '../settings/ExerciseEditor.tsx'
 import TemplatesEditor from '../settings/TemplatesEditor.tsx'
 
@@ -164,6 +165,7 @@ export default function Settings() {
         </div>
       </Glass>
 
+      <AiSettings />
       <Backup />
       <TemplatesEditor />
       <ExerciseEditor />

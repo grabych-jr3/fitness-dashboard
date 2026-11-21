@@ -12,6 +12,9 @@ export type EditorInput = {
   confidence?: number
   /** Editing an existing scan instead of adding a new one. */
   scanId?: number
+  /** Who read the receipt, e.g. 'Gemini' or 'Tesseract', and an optional note (fallback reason). */
+  source?: string
+  note?: string
 }
 
 /** Confirmation / edit form for an InBody scan. Fields the OCR doubts are highlighted. */
@@ -85,8 +88,10 @@ export default function ScanEditor({ input, onClose }: { input: EditorInput | nu
     <Sheet open onClose={onClose} title={input.scanId !== undefined ? 'Редагувати замір' : 'Перевір цифри'}>
       <div className="lg-stack">
         {photoUrl && <img className="scan-photo" src={photoUrl} alt="Фото чека" />}
+        {input.note && <p className="scan-note">{input.note}</p>}
         {input.confidence !== undefined && (
           <p className={'scan-summary ' + (input.issues.length ? 'bal-warn' : 'stat-good')}>
+            {input.source ? `${input.source}: ` : ''}
             {input.issues.length
               ? `Розпізнано, але ${input.issues.length} ${input.issues.length === 1 ? 'поле варто' : 'полів варто'} перевірити — вони підсвічені.`
               : 'Усе розпізнано і зійшлося. Глянь ще раз і зберігай.'}

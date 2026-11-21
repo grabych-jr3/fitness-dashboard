@@ -1,10 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Page from '../components/Page.tsx'
 import WeighInSheet from '../components/WeighInSheet.tsx'
 import { db } from '../data/db.ts'
 import { toIsoDate } from '../data/dates.ts'
-import { useScans } from '../data/hooks.ts'
+import { useScans, useSettings } from '../data/hooks.ts'
 import type { InbodyScan } from '../data/types.ts'
 import { Button, Glass, Sheet } from '../glass'
 import { fmt, fmtDate } from '../lib/format.ts'
@@ -12,7 +13,10 @@ import ScanEditor, { type EditorInput } from '../measure/ScanEditor.tsx'
 import { emptyValues, valuesFromParsed, valuesFromScan } from '../measure/scanForm.ts'
 import type { OcrStage } from '../ocr/engine.ts'
 
-const stageText: Record<OcrStage, string> = {
+type Stage = OcrStage | 'ai'
+
+const stageText: Record<Stage, string> = {
+  ai: 'Gemini читає чек…',
   preprocess: 'Готую фото…',
   load: 'Завантажую розпізнавання (лише першого разу)…',
   recognize: 'Читаю цифри…',
@@ -31,7 +35,8 @@ export default function Measurements() {
   const scans = useScans()
   const camera = useRef<HTMLInputElement>(null)
   const gallery = useRef<HTMLInputElement>(null)
-  const [ocr, setOcr] = useState<{ p: number; stage: OcrStage } | null>(null)
+  const [ocr, setOcr] = useState<{ p: number; stage: Stage } | null>(null)
+  const settings = useSettings()
   const [error, setError] = useState<{ text: string; detail: string; photo: File } | null>(null)
   const [editor, setEditor] = useState<EditorInput | null>(null)
   const [weighIn, setWeighIn] = useState(false)
@@ -41,11 +46,47 @@ export default function Measurements() {
     if (!file) return
     setError(null)
     setOcr({ p: 0, stage: 'preprocess' })
+    let note: string | undefined
     try {
-      // Loaded on demand so the OCR code stays out of the main bundle.
+      // 1. Gemini, when the user added a key and we're online.
+      if (settings.aiKey && navigator.onLine) {
+        let ticker: ReturnType<typeof setInterval> | undefined
+        try {
+          const [{ prepareForAi }, gemini] = await Promise.all([import('../ocr/preprocess.ts'), import('../ocr/gemini.ts')])
+          const image = await prepareForAi(file)
+          // The API gives no progress; creep the bar so it doesn't look frozen.
+          let p = 0.15
+          setOcr({ p, stage: 'ai' })
+          ticker = setInterval(() => setOcr({ p: (p = Math.min(0.92, p + (0.95 - p) * 0.08)), stage: 'ai' }), 400)
+          const controller = new AbortController()
+          const timeout = setTimeout(() => controller.abort(), 60_000)
+          try {
+            const { parsed, model } = await gemini.recognizeWithGemini(image, settings.aiKey, settings.aiModel, controller.signal)
+            setEditor({ values: valuesFromParsed(parsed, toIsoDate()), issues: parsed.issues, photo: file, confidence: parsed.confidence, source: `Gemini (${model})` })
+            return
+          } finally {
+            clearTimeout(timeout)
+          }
+        } catch (e) {
+          console.error(e)
+          const { describeGeminiError } = await import('../ocr/gemini.ts')
+          note = `${e instanceof DOMException && e.name === 'AbortError' ? 'Gemini не відповів за хвилину.' : describeGeminiError(e)} Використано звичайне розпізнавання.`
+        } finally {
+          if (ticker) clearInterval(ticker)
+        }
+      }
+      // 2. On-device Tesseract (no key, offline, or Gemini failed).
+      setOcr({ p: 0, stage: 'preprocess' })
       const { recognizeInbody } = await import('../ocr/engine.ts')
       const { parsed } = await recognizeInbody(file, (p, stage) => setOcr({ p, stage }))
-      setEditor({ values: valuesFromParsed(parsed, toIsoDate()), issues: parsed.issues, photo: file, confidence: parsed.confidence })
+      setEditor({
+        values: valuesFromParsed(parsed, toIsoDate()),
+        issues: parsed.issues,
+        photo: file,
+        confidence: parsed.confidence,
+        source: settings.aiKey ? 'Звичайне розпізнавання' : undefined,
+        note: note ?? (settings.aiKey ? undefined : 'Порада: додай ключ Gemini в Налаштуваннях — він читає термочек значно точніше.'),
+      })
     } catch (e) {
       console.error(e)
       const step = (e as { step?: string }).step
@@ -70,6 +111,11 @@ export default function Measurements() {
       <Glass padded className="measure-hero">
         <h2 className="lg-h2">Новий замір InBody</h2>
         <p className="lg-muted measure-tip">Поклади чек рівно, без тіней і згинів, щоб цифри були в кадрі повністю.</p>
+        {!settings.aiKey && (
+          <p className="measure-ai-hint">
+            Для точного розпізнавання <Link to="/settings#ai">підключи Gemini</Link> (безкоштовно).
+          </p>
+        )}
         {ocr ? (
           <div className="ocr-progress" role="status">
             <div className="goal-bar">
