@@ -4,10 +4,12 @@ import { Link } from 'react-router-dom'
 import Page from '../components/Page.tsx'
 import { db } from '../data/db.ts'
 import { useExercises, useSettings, useTemplates } from '../data/hooks.ts'
+import { nextStepsAfter, type NextStep } from '../data/queries.ts'
 import type { Exercise, Workout as WorkoutT, WorkoutSet } from '../data/types.ts'
 import { Button, Glass, Sheet } from '../glass'
 import { addExercise, discardWorkout, exerciseOrder, finishWorkout, startWorkout } from '../workout/actions.ts'
 import ExerciseBlock from '../workout/ExerciseBlock.tsx'
+import FinishSummary from '../workout/FinishSummary.tsx'
 import ExercisePicker from '../workout/ExercisePicker.tsx'
 import HistoryList from '../workout/HistoryList.tsx'
 import { fmtClock, stopRest } from '../workout/restTimer.ts'
@@ -29,7 +31,7 @@ function Elapsed({ since }: { since: number }) {
   return <span className="wo-elapsed">{fmtClock(Math.max(0, Math.floor((now - since) / 1000)))}</span>
 }
 
-function ActiveWorkout({ workout }: { workout: WorkoutT }) {
+function ActiveWorkout({ workout, onFinished }: { workout: WorkoutT; onFinished: (steps: NextStep[]) => void }) {
   const settings = useSettings()
   const exercises = useExercises({ includeArchived: true })
   const sets = useLiveQuery(() => db.sets.where('workoutId').equals(workout.id!).toArray(), [workout.id])
@@ -63,7 +65,7 @@ function ActiveWorkout({ workout }: { workout: WorkoutT }) {
         const ex: Exercise | undefined = byId.get(exId)
         if (!ex) return null
         const exSets = sets.filter((s: WorkoutSet) => s.exerciseId === exId).sort((a, b) => a.setIndex - b.setIndex)
-        return <ExerciseBlock key={exId} workoutId={workout.id!} exercise={ex} sets={exSets} restSeconds={settings.restSeconds} />
+        return <ExerciseBlock key={exId} workoutId={workout.id!} templateId={workout.templateId} exercise={ex} sets={exSets} restSeconds={settings.restSeconds} />
       })}
 
       <Button block onClick={() => setPicker(true)}>
@@ -91,8 +93,9 @@ function ActiveWorkout({ workout }: { workout: WorkoutT }) {
             variant="primary"
             block
             onClick={async () => {
-              if (confirm === 'finish') await finishWorkout(workout.id!)
-              else await discardWorkout(workout.id!)
+              if (confirm === 'finish') {
+                if (await finishWorkout(workout.id!)) onFinished(await nextStepsAfter(workout.id!))
+              } else await discardWorkout(workout.id!)
               stopRest()
               setConfirm(null)
             }}
@@ -113,17 +116,21 @@ export default function Workout() {
   const templates = useTemplates()
   const exercises = useExercises({ includeArchived: true })
   const names = useMemo(() => new Map((exercises ?? []).map((e) => [e.id!, e.name])), [exercises])
+  const [summary, setSummary] = useState<NextStep[] | null>(null)
+  const summarySheet = <FinishSummary steps={summary} onClose={() => setSummary(null)} />
 
   if (active === undefined) return <Page title="Тренування" />
   if (active) {
     return (
       <Page title="Тренування">
-        <ActiveWorkout workout={active} />
+        <ActiveWorkout workout={active} onFinished={setSummary} />
+        {summarySheet}
       </Page>
     )
   }
   return (
     <Page title="Тренування">
+      {summarySheet}
       {(templates ?? []).map((t) => (
         <div key={t.id} className="tpl-card-wrap">
           <Glass padded interactive as="button" type="button" className="tpl-card tpl-card--editable" onClick={() => startWorkout(t.id)}>

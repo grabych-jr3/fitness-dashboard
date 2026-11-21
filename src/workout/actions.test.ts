@@ -24,7 +24,7 @@ describe('workout actions', () => {
     expect(sets.every((s) => !s.done)).toBe(true)
   })
 
-  it('prefills weights and reps from the last finished workout', async () => {
+  it('prefills the double-progression target from the last finished workout', async () => {
     const t = await templateA()
     const first = await startWorkout(t.id)
     const exId = t.items[0].exerciseId
@@ -37,10 +37,11 @@ describe('workout actions', () => {
 
     const second = await startWorkout(t.id)
     const next = await db.sets.where('[workoutId+exerciseId]').equals([second, exId]).sortBy('setIndex')
+    // working set = the top weight (62.5 × 8), inside the range -> same weight, +1 rep
     expect(next.map((s) => [s.weight, s.reps])).toEqual([
-      [60, 10],
-      [62.5, 8],
-      [62.5, 8],
+      [62.5, 9],
+      [62.5, 9],
+      [62.5, 9],
     ])
   })
 
@@ -107,7 +108,7 @@ describe('workout actions', () => {
     expect(exerciseOrder(next)).toEqual([a.id, b.id])
     expect(next.filter((s) => s.exerciseId === a.id)).toHaveLength(4)
     expect(next.filter((s) => s.exerciseId === b.id)).toHaveLength(1)
-    expect(next.every((s) => !s.done && s.weight === 30 && s.reps === 10)).toBe(true)
+    expect(next.every((s) => !s.done && s.weight === 30 && s.reps === 11)).toBe(true) // +1 rep (double progression)
 
     // template deleted -> falls back to the free path
     const t = await templateA()
@@ -123,5 +124,31 @@ describe('workout actions', () => {
 
   it('returns undefined when repeating a missing workout', async () => {
     expect(await repeatWorkout(9999)).toBeUndefined()
+  })
+})
+
+describe('progression from the database', () => {
+  it('uses the template range and step; summary after finishing', async () => {
+    const { nextStepsAfter, planFor, defaultWeightStep } = await import('../data/queries.ts')
+    expect(defaultWeightStep('Жим гантелей на похилій лаві')).toBe(2)
+    expect(defaultWeightStep('Жим ногами')).toBe(5)
+    const t = await templateA()
+    const item = t.items[0]
+    expect((await planFor(item.exerciseId, t.id)).range).toEqual({ repMin: item.repMin, repMax: item.repMax })
+
+    const id = await startWorkout(t.id)
+    const sets = await db.sets.where('[workoutId+exerciseId]').equals([id, item.exerciseId]).sortBy('setIndex')
+    for (const s of sets) {
+      await updateSet(s.id!, { weight: 50, reps: item.repMax })
+      await toggleDone(s.id!)
+    }
+    await finishWorkout(id)
+    const [step] = await nextStepsAfter(id)
+    expect(step.rec.action).toBe('up-weight')
+    expect(step.rec.weight).toBeGreaterThan(50)
+
+    const next = await startWorkout(t.id)
+    const planned = await db.sets.where('[workoutId+exerciseId]').equals([next, item.exerciseId]).toArray()
+    expect(planned.every((s, i) => s.weight === step.rec.weight && s.reps === step.rec.reps[i] && s.reps >= item.repMin && s.reps < item.repMax)).toBe(true)
   })
 })

@@ -1,10 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
-import { lastPerformance } from '../data/queries.ts'
+import { nextTarget } from '../data/queries.ts'
 import type { Exercise, WorkoutSet } from '../data/types.ts'
 import { Glass } from '../glass'
-import { fmt } from '../lib/format.ts'
 import { addSet, removeExercise, removeSet, toggleDone, updateSet } from './actions.ts'
+import { TodayTarget } from './Progression.tsx'
 import { startRest } from './restTimer.ts'
 
 /** Numeric input that keeps what the user is typing and saves valid numbers on blur. */
@@ -31,17 +31,18 @@ function NumField({ value, onSave, label, step }: { value: number; onSave: (v: n
 
 export default function ExerciseBlock({
   workoutId,
+  templateId,
   exercise,
   sets,
   restSeconds,
 }: {
   workoutId: number
+  templateId?: number
   exercise: Exercise
   sets: WorkoutSet[]
   restSeconds: number
 }) {
-  const last = useLiveQuery(() => lastPerformance(exercise.id!, workoutId), [exercise.id, workoutId])
-  const hint = last?.sets.filter((s) => s.done).map((s) => `${fmt(s.weight, s.weight % 1 ? 1 : 0)}×${s.reps}`).join(', ')
+  const rec = useLiveQuery(() => nextTarget(exercise.id!, { templateId, excludeWorkoutId: workoutId }), [exercise.id, workoutId, templateId])
 
   return (
     <Glass padded className="ex-block">
@@ -52,7 +53,7 @@ export default function ExerciseBlock({
           Прибрати
         </button>
       </div>
-      <p className="lg-muted ex-hint">{hint ? `Минулого разу: ${hint}` : 'Перший раз — підбери робочу вагу.'}</p>
+      {rec ? <TodayTarget rec={rec} /> : <p className="lg-muted ex-hint">&nbsp;</p>}
 
       <div className="set-grid set-head" aria-hidden="true">
         <span>№</span>

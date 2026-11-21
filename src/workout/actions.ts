@@ -1,6 +1,6 @@
 import { db } from '../data/db.ts'
 import { toIsoDate } from '../data/dates.ts'
-import { lastPerformance } from '../data/queries.ts'
+import { nextTarget } from '../data/queries.ts'
 import type { WorkoutSet } from '../data/types.ts'
 import { doneExerciseOrder } from './history.ts'
 
@@ -17,31 +17,28 @@ export function exerciseOrder(sets: readonly WorkoutSet[]): number[] {
   return [...first.entries()].sort((a, b) => a[1] - b[1]).map(([id]) => id)
 }
 
-/** Planned sets for an exercise, prefilled from the last time it was done. */
-async function plannedSets(workoutId: number, exerciseId: number, count: number, repMin?: number): Promise<WorkoutSet[]> {
-  const last = await lastPerformance(exerciseId, workoutId)
-  const lastSets = last?.sets.filter((s) => s.done) ?? []
-  return Array.from({ length: count }, (_, i) => {
-    const ref = lastSets[i] ?? lastSets.at(-1)
-    return {
-      workoutId,
-      exerciseId,
-      setIndex: i,
-      weight: ref?.weight ?? 0,
-      reps: ref?.reps ?? repMin ?? DEFAULT_REPS,
-      done: false,
-    }
-  })
+/** Planned sets for an exercise, prefilled with the double-progression target for today. */
+async function plannedSets(workoutId: number, exerciseId: number, opts: { count?: number; templateId?: number } = {}): Promise<WorkoutSet[]> {
+  const rec = await nextTarget(exerciseId, { templateId: opts.templateId, excludeWorkoutId: workoutId, targetSets: opts.count })
+  const count = opts.count ?? (rec.action === 'first' ? DEFAULT_SETS : rec.reps.length)
+  return Array.from({ length: count }, (_, i) => ({
+    workoutId,
+    exerciseId,
+    setIndex: i,
+    weight: rec.weight,
+    reps: rec.reps[i] ?? rec.reps.at(-1) ?? DEFAULT_REPS,
+    done: false,
+  }))
 }
 
 /** Starts a workout, optionally from a template. Returns the new workout id. */
 export async function startWorkout(templateId?: number): Promise<number> {
-  return db.transaction('rw', [db.workouts, db.sets, db.templates], async () => {
+  return db.transaction('rw', [db.workouts, db.sets, db.templates, db.exercises], async () => {
     const workoutId = (await db.workouts.add({ date: toIsoDate(), templateId, startedAt: Date.now() })) as number
     if (templateId !== undefined) {
       const template = await db.templates.get(templateId)
       for (const item of template?.items ?? []) {
-        await db.sets.bulkAdd(await plannedSets(workoutId, item.exerciseId, item.targetSets, item.repMin))
+        await db.sets.bulkAdd(await plannedSets(workoutId, item.exerciseId, { count: item.targetSets, templateId }))
       }
     }
     return workoutId
@@ -51,7 +48,8 @@ export async function startWorkout(templateId?: number): Promise<number> {
 export async function addExercise(workoutId: number, exerciseId: number): Promise<void> {
   const existing = await db.sets.where('[workoutId+exerciseId]').equals([workoutId, exerciseId]).count()
   if (existing > 0) return
-  await db.sets.bulkAdd(await plannedSets(workoutId, exerciseId, DEFAULT_SETS))
+  const workout = await db.workouts.get(workoutId)
+  await db.sets.bulkAdd(await plannedSets(workoutId, exerciseId, { templateId: workout?.templateId }))
 }
 
 /** Adds one more set, copying the weight and reps of the previous one. */

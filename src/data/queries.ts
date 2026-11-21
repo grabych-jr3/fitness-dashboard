@@ -1,4 +1,5 @@
 import { e1rm } from '../lib/e1rm'
+import { DEFAULT_RANGE, DEFAULT_STEP, recommend, type Recommendation, type RepRange, type Session } from '../progress/progression'
 import { db } from './db'
 import {
   MUSCLE_GROUPS,
@@ -172,4 +173,74 @@ export async function personalRecords(): Promise<PersonalRecord[]> {
     }
   }
   return [...best.values()].sort((a, b) => a.exerciseId - b.exerciseId)
+}
+
+/** Finished sessions of an exercise (done sets only), oldest first. */
+export async function exerciseSessions(exerciseId: number, excludeWorkoutId?: number): Promise<Session[]> {
+  const sets = (await db.sets.where('exerciseId').equals(exerciseId).toArray()).filter((s) => s.done && s.workoutId !== excludeWorkoutId)
+  const ids = [...new Set(sets.map((s) => s.workoutId))]
+  const workouts = (await db.workouts.bulkGet(ids)).filter((w): w is Workout => w !== undefined && w.finishedAt !== undefined).sort(compareWorkouts)
+  return workouts.map((w) => ({
+    date: w.date,
+    sets: sets
+      .filter((s) => s.workoutId === w.id)
+      .sort((a, b) => a.setIndex - b.setIndex)
+      .map((s) => ({ weight: s.weight, reps: s.reps, pain: s.pain })),
+  }))
+}
+
+/** Guess of the weight step from the exercise name: dumbbells go in pairs of 2 kg, the leg press in 5 kg plates. */
+export function defaultWeightStep(name: string): number {
+  const n = name.toLocaleLowerCase('uk')
+  if (n.includes('жим ногами')) return 5
+  if (n.includes('гантел') || n.includes('молотки')) return 2
+  return DEFAULT_STEP
+}
+
+export const weightStepOf = (e: Pick<Exercise, 'name' | 'weightStep'>) => e.weightStep ?? defaultWeightStep(e.name)
+
+/**
+ * Rep range and planned sets of an exercise: from the given template, else from
+ * any template that has it, else the default 8–12.
+ */
+export async function planFor(exerciseId: number, templateId?: number): Promise<{ range: RepRange; targetSets?: number }> {
+  const templates = await db.templates.toArray()
+  const own = templates.find((t) => t.id === templateId)?.items.find((i) => i.exerciseId === exerciseId)
+  const any = own ?? templates.flatMap((t) => t.items).find((i) => i.exerciseId === exerciseId)
+  return any ? { range: { repMin: any.repMin, repMax: any.repMax }, targetSets: own?.targetSets } : { range: DEFAULT_RANGE }
+}
+
+/** Recommendation for the next time an exercise is done. */
+export async function nextTarget(exerciseId: number, opts: { templateId?: number; excludeWorkoutId?: number; targetSets?: number } = {}): Promise<Recommendation> {
+  const [history, plan, exercise] = await Promise.all([exerciseSessions(exerciseId, opts.excludeWorkoutId), planFor(exerciseId, opts.templateId), db.exercises.get(exerciseId)])
+  return recommend(history, plan.range, exercise ? weightStepOf(exercise) : DEFAULT_STEP, opts.targetSets ?? plan.targetSets)
+}
+
+export interface NextStep {
+  exerciseId: number
+  name: string
+  rec: Recommendation
+}
+
+/** What changes next time for every exercise of a (just finished) workout, in the order they were done. */
+export async function nextStepsAfter(workoutId: number): Promise<NextStep[]> {
+  const workout = await db.workouts.get(workoutId)
+  const sets = (await db.sets.where('workoutId').equals(workoutId).toArray()).filter((s) => s.done).sort((a, b) => (a.completedAt ?? 0) - (b.completedAt ?? 0) || (a.id ?? 0) - (b.id ?? 0))
+  const ids = [...new Set(sets.map((s) => s.exerciseId))]
+  const exercises = await db.exercises.bulkGet(ids)
+  return Promise.all(ids.map(async (id, i) => ({ exerciseId: id, name: exercises[i]?.name ?? '—', rec: await nextTarget(id, { templateId: workout?.templateId }) })))
+}
+
+/** Next target for every exercise that has history, most urgent first (plateau, more weight, deload, pain…). */
+export async function allNextSteps(): Promise<NextStep[]> {
+  const done = await db.sets.filter((s) => s.done).toArray()
+  const ids = [...new Set(done.map((s) => s.exerciseId))]
+  const exercises = await db.exercises.bulkGet(ids)
+  const out: NextStep[] = []
+  for (let i = 0; i < ids.length; i++) {
+    const rec = await nextTarget(ids[i])
+    if (rec.action !== 'first' && exercises[i] && !exercises[i]!.archived) out.push({ exerciseId: ids[i], name: exercises[i]!.name, rec })
+  }
+  const rank = (r: Recommendation) => (r.plateau ? 0 : { 'up-weight': 1, deload: 2, pain: 3, hold: 4, 'up-reps': 5, first: 6 }[r.action])
+  return out.sort((a, b) => rank(a.rec) - rank(b.rec) || a.name.localeCompare(b.name, 'uk'))
 }
