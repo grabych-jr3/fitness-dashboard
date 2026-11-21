@@ -146,6 +146,10 @@ export interface Settings {
   restSeconds: number
   /** epoch ms of the last successful JSON export */
   lastBackupAt?: number
+  /** Gemini API key for receipt recognition. Stays on this device; never exported. */
+  aiKey?: string
+  /** Gemini model id, e.g. 'gemini-3.8-flash'. */
+  aiModel?: string
 }
 
 /** Point of the merged weight chart. */

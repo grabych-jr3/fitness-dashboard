@@ -331,3 +331,45 @@ export async function prepareOcrPasses(file: Blob, longSides: readonly number[] 
     bitmap.close()
   }
 }
+
+/**
+ * Browser only. Colour JPEG of the receipt for an AI model: cropped to the paper
+ * when it can be found, long side ~2400 px (keeps small digits legible, ~0.5–1 MB).
+ */
+export async function prepareForAi(file: Blob, longSide = 2400): Promise<Blob> {
+  const img = await decodeImage(file)
+  try {
+    const small = fitLongSide(img.width, img.height, 400)
+    const probe = document.createElement('canvas')
+    probe.width = small.width
+    probe.height = small.height
+    const pctx = probe.getContext('2d', { willReadFrequently: true })
+    if (!pctx) throw new Error('Canvas 2D недоступний')
+    pctx.drawImage(img.source, 0, 0, small.width, small.height)
+    const box = findPaperBounds(toGrayscale(pctx.getImageData(0, 0, small.width, small.height).data), small.width, small.height)
+    const k = img.width / small.width
+    // A little extra margin around the paper: better to include background than cut digits.
+    const src = box
+      ? (() => {
+          const m = 0.04 * Math.max(box.width, box.height) * k
+          const x = Math.max(0, box.x * k - m)
+          const y = Math.max(0, box.y * k - m)
+          return { x, y, width: Math.min(img.width - x, box.width * k + 2 * m), height: Math.min(img.height - y, box.height * k + 2 * m) }
+        })()
+      : { x: 0, y: 0, width: img.width, height: img.height }
+    const size = fitLongSide(src.width, src.height, Math.min(longSide, Math.max(src.width, src.height)))
+    const canvas = document.createElement('canvas')
+    canvas.width = size.width
+    canvas.height = size.height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Canvas 2D недоступний')
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(img.source, src.x, src.y, src.width, src.height, 0, 0, size.width, size.height)
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.9))
+    canvas.width = canvas.height = 0
+    if (!blob) throw new Error('Не вдалося підготувати фото')
+    return blob
+  } finally {
+    img.close()
+  }
+}

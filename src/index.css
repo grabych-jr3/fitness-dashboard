@@ -191,3 +191,6 @@ select.lg-input { appearance: none; -webkit-appearance: none; }
 @media (prefers-reduced-motion: no-preference) {
   .goal-bar-fill, .seg-bar-fill, .bal-fill { transform-origin: left center; animation: lg-grow 1s 0.15s var(--lg-ease) both; }
 }
+.scan-note { margin: 0; font-size: 13px; color: var(--muted); background: var(--fill); border-radius: 12px; padding: 8px 12px; }
+.measure-ai-hint { margin: -6px 0 14px; font-size: 14px; color: var(--fg-2); }
+.measure-ai-hint a, .set-text a { color: var(--accent); font-weight: 600; }
