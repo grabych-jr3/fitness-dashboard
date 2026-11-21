@@ -119,28 +119,19 @@
   pointer-events: none;
 }
 .lg-blob {
+  /* Soft colour light made with gradients, not filter: blur() — and static. Animated,
+     blurred blobs under many backdrop-filter panels made iOS recompute every glass
+     surface on every frame, which slowed the whole app down. */
   position: absolute;
-  width: 70vmax;
-  height: 70vmax;
+  width: 90vmax;
+  height: 90vmax;
   border-radius: 50%;
-  filter: blur(60px);
   opacity: 0.9;
-  will-change: transform;
 }
-.lg-blob:nth-child(1) { background: var(--blob-1); top: -30vmax; left: -25vmax; }
-.lg-blob:nth-child(2) { background: var(--blob-2); top: 5vmax; right: -35vmax; }
-.lg-blob:nth-child(3) { background: var(--blob-3); bottom: -40vmax; left: -10vmax; }
-.lg-blob:nth-child(4) { background: var(--blob-4); bottom: -20vmax; right: -30vmax; width: 50vmax; height: 50vmax; }
-
-@media (prefers-reduced-motion: no-preference) {
-  .lg-blob:nth-child(1) { animation: lg-drift-1 28s ease-in-out infinite alternate; }
-  .lg-blob:nth-child(2) { animation: lg-drift-2 34s ease-in-out infinite alternate; }
-  .lg-blob:nth-child(3) { animation: lg-drift-3 40s ease-in-out infinite alternate; }
-  .lg-blob:nth-child(4) { animation: lg-drift-1 46s ease-in-out infinite alternate-reverse; }
-}
-@keyframes lg-drift-1 { to { transform: translate(18vmax, 14vmax) scale(1.1); } }
-@keyframes lg-drift-2 { to { transform: translate(-20vmax, 18vmax) scale(0.9); } }
-@keyframes lg-drift-3 { to { transform: translate(16vmax, -18vmax) scale(1.15); } }
+.lg-blob:nth-child(1) { background: radial-gradient(closest-side, var(--blob-1), transparent); top: -40vmax; left: -35vmax; }
+.lg-blob:nth-child(2) { background: radial-gradient(closest-side, var(--blob-2), transparent); top: -5vmax; right: -45vmax; }
+.lg-blob:nth-child(3) { background: radial-gradient(closest-side, var(--blob-3), transparent); bottom: -50vmax; left: -20vmax; }
+.lg-blob:nth-child(4) { background: radial-gradient(closest-side, var(--blob-4), transparent); bottom: -30vmax; right: -40vmax; width: 70vmax; height: 70vmax; }
 
 /* ── Glass surface ─────────────────────────────────────────────────── */
 .glass {
@@ -339,29 +330,21 @@
 .lg-sheet-handle { cursor: grab; padding-top: 2px; }
 
 /* ── Motion: pages, lists, presses ─────────────────────────────────── */
-@keyframes lg-page-in { from { opacity: 0; transform: translateY(14px) scale(0.985); filter: blur(6px); } }
-@keyframes lg-rise { from { opacity: 0; transform: translateY(16px) scale(0.98); } }
+@keyframes lg-page-in { from { transform: translateY(10px); } }
+@keyframes lg-rise { from { opacity: 0; transform: translateY(12px); } }
 @keyframes lg-pop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
-@keyframes lg-row-in { from { opacity: 0; transform: translateX(-8px); } }
 
+/* Motion stays cheap on iPhone: only transform on the page, and opacity only on the
+   top-level cards themselves — never on a parent of glass (backdrop-filter) elements,
+   which forces WebKit to re-render the blur of everything inside on every frame. */
 @media (prefers-reduced-motion: no-preference) {
-  .page-anim { animation: lg-page-in 0.5s var(--lg-ease) both; }
+  .page-anim { animation: lg-page-in 0.32s var(--lg-ease) both; }
   .page-anim .lg-stack > *,
-  .tab-anim > * { animation: lg-rise 0.55s var(--lg-ease) both; }
-  .page-anim .lg-stack > :nth-child(2), .tab-anim > :nth-child(2) { animation-delay: 0.05s; }
-  .page-anim .lg-stack > :nth-child(3), .tab-anim > :nth-child(3) { animation-delay: 0.1s; }
-  .page-anim .lg-stack > :nth-child(4), .tab-anim > :nth-child(4) { animation-delay: 0.15s; }
-  .page-anim .lg-stack > :nth-child(5), .tab-anim > :nth-child(5) { animation-delay: 0.2s; }
-  .page-anim .lg-stack > :nth-child(6), .tab-anim > :nth-child(6) { animation-delay: 0.25s; }
-  .page-anim .lg-stack > :nth-child(n+7), .tab-anim > :nth-child(n+7) { animation-delay: 0.3s; }
-  .lg-grid-2 > * { animation: lg-rise 0.5s var(--lg-ease) both; }
-  .lg-grid-2 > :nth-child(2) { animation-delay: 0.04s; }
-  .lg-grid-2 > :nth-child(3) { animation-delay: 0.08s; }
-  .lg-grid-2 > :nth-child(4) { animation-delay: 0.12s; }
-  .lg-grid-2 > :nth-child(5) { animation-delay: 0.16s; }
-  .lg-grid-2 > :nth-child(n+6) { animation-delay: 0.2s; }
-  .lg-sheet .lg-stack > * { animation: none; }
-  .scan-row, .scan-item, .seg-row, .bal-row { animation: lg-row-in 0.4s var(--lg-ease) both; }
+  .tab-anim > * { animation: lg-rise 0.34s var(--lg-ease) both; }
+  .page-anim .lg-stack > :nth-child(2), .tab-anim > :nth-child(2) { animation-delay: 0.03s; }
+  .page-anim .lg-stack > :nth-child(3), .tab-anim > :nth-child(3) { animation-delay: 0.06s; }
+  .page-anim .lg-stack > :nth-child(n+4), .tab-anim > :nth-child(n+4) { animation-delay: 0.09s; }
+  .lg-sheet .lg-stack > *, .lg-stack .lg-stack > * { animation: none; }
   .lg-btn, .lg-tab, .lg-seg button, .glass--interactive { transition: transform 0.35s var(--lg-spring), color 0.25s, background 0.25s, box-shadow 0.25s; }
   .lg-btn:active { transform: scale(0.96); }
 }

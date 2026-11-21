@@ -6,24 +6,13 @@ import WeighInSheet from '../components/WeighInSheet.tsx'
 import { db } from '../data/db.ts'
 import { toIsoDate } from '../data/dates.ts'
 import { useScans, useSettings } from '../data/hooks.ts'
-import type { InbodyScan } from '../data/types.ts'
+import type { InbodyScan, ScanDraft } from '../data/types.ts'
 import { Button, Glass, Sheet } from '../glass'
 import { fmt, fmtDate } from '../lib/format.ts'
+import DraftCard from '../measure/DraftCard.tsx'
 import ScanEditor, { type EditorInput } from '../measure/ScanEditor.tsx'
-import { emptyValues, valuesFromParsed, valuesFromScan } from '../measure/scanForm.ts'
-import type { OcrStage } from '../ocr/engine.ts'
-
-type Stage = OcrStage | 'ai'
-
-const stageText: Record<Stage, string> = {
-  ai: 'Gemini читає чек…',
-  preprocess: 'Готую фото…',
-  load: 'Завантажую розпізнавання (лише першого разу)…',
-  recognize: 'Читаю цифри…',
-  parse: 'Перевіряю результат…',
-  done: 'Готово',
-}
-
+import { startScan } from '../measure/scanJobs.ts'
+import { emptyValues, valuesFromScan, type FormValues } from '../measure/scanForm.ts'
 function Thumb({ photoId }: { photoId?: number }) {
   const blob = useLiveQuery(async () => (photoId ? (await db.photos.get(photoId))?.blob : undefined), [photoId])
   const url = useMemo(() => (blob ? URL.createObjectURL(blob) : null), [blob])
@@ -35,75 +24,40 @@ export default function Measurements() {
   const scans = useScans()
   const camera = useRef<HTMLInputElement>(null)
   const gallery = useRef<HTMLInputElement>(null)
-  const [ocr, setOcr] = useState<{ p: number; stage: Stage } | null>(null)
   const settings = useSettings()
-  const [error, setError] = useState<{ text: string; detail: string; photo: File } | null>(null)
   const [editor, setEditor] = useState<EditorInput | null>(null)
   const [weighIn, setWeighIn] = useState(false)
   const [remove, setRemove] = useState<InbodyScan | null>(null)
+  const [startError, setStartError] = useState<string | null>(null)
+  const drafts = useLiveQuery(() => db.drafts.orderBy('createdAt').reverse().toArray(), [])
 
   const onFile = async (file: File | undefined) => {
+    if (camera.current) camera.current.value = ''
+    if (gallery.current) gallery.current.value = ''
     if (!file) return
-    setError(null)
-    setOcr({ p: 0, stage: 'preprocess' })
-    let note: string | undefined
+    setStartError(null)
     try {
-      // 1. Gemini, when the user added a key and we're online.
-      if (settings.aiKey && navigator.onLine) {
-        let ticker: ReturnType<typeof setInterval> | undefined
-        try {
-          const [{ prepareForAi }, gemini] = await Promise.all([import('../ocr/preprocess.ts'), import('../ocr/gemini.ts')])
-          const image = await prepareForAi(file)
-          // The API gives no progress; creep the bar so it doesn't look frozen.
-          let p = 0.15
-          setOcr({ p, stage: 'ai' })
-          ticker = setInterval(() => setOcr({ p: (p = Math.min(0.92, p + (0.95 - p) * 0.08)), stage: 'ai' }), 400)
-          const controller = new AbortController()
-          const timeout = setTimeout(() => controller.abort(), 60_000)
-          try {
-            const { parsed, model } = await gemini.recognizeWithGemini(image, settings.aiKey, settings.aiModel, controller.signal)
-            setEditor({ values: valuesFromParsed(parsed, toIsoDate()), issues: parsed.issues, photo: file, confidence: parsed.confidence, source: `Gemini (${model})` })
-            return
-          } finally {
-            clearTimeout(timeout)
-          }
-        } catch (e) {
-          console.error(e)
-          const { describeGeminiError } = await import('../ocr/gemini.ts')
-          note = `${e instanceof DOMException && e.name === 'AbortError' ? 'Gemini не відповів за хвилину.' : describeGeminiError(e)} Використано звичайне розпізнавання.`
-        } finally {
-          if (ticker) clearInterval(ticker)
-        }
-      }
-      // 2. On-device Tesseract (no key, offline, or Gemini failed).
-      setOcr({ p: 0, stage: 'preprocess' })
-      const { recognizeInbody } = await import('../ocr/engine.ts')
-      const { parsed } = await recognizeInbody(file, (p, stage) => setOcr({ p, stage }))
-      setEditor({
-        values: valuesFromParsed(parsed, toIsoDate()),
-        issues: parsed.issues,
-        photo: file,
-        confidence: parsed.confidence,
-        source: settings.aiKey ? 'Звичайне розпізнавання' : undefined,
-        note: note ?? (settings.aiKey ? undefined : 'Порада: додай ключ Gemini в Налаштуваннях — він читає термочек значно точніше.'),
-      })
+      // Saved first, recognised in the background: leaving this tab or the app doesn't lose it.
+      await startScan(file)
     } catch (e) {
       console.error(e)
-      const step = (e as { step?: string }).step
-      const text =
-        step === 'photo'
-          ? 'Не вдалося відкрити це фото.'
-          : step === 'load'
-            ? navigator.onLine
-              ? 'Не вдалося завантажити модуль розпізнавання.'
-              : 'Для першого розпізнавання потрібен інтернет (~7 МБ). Потім працює офлайн.'
-            : 'Не вдалося розпізнати цифри на фото.'
-      setError({ text, detail: e instanceof Error ? e.message : String(e), photo: file })
-    } finally {
-      setOcr(null)
-      if (camera.current) camera.current.value = ''
-      if (gallery.current) gallery.current.value = ''
+      setStartError('Не вдалося зберегти фото на телефоні.')
     }
+  }
+
+  const review = async (d: ScanDraft) => {
+    const photo = await db.photos.get(d.photoId)
+    const r = d.result
+    setEditor({
+      values: (r?.values as FormValues) ?? emptyValues(toIsoDate()),
+      issues: r?.issues ?? [],
+      confidence: r?.confidence,
+      source: r?.source,
+      note: r?.note,
+      photo: photo?.blob,
+      photoId: d.photoId,
+      draftId: d.id,
+    })
   }
 
   return (
@@ -116,42 +70,21 @@ export default function Measurements() {
             Для точного розпізнавання <Link to="/settings#ai">підключи Gemini</Link> (безкоштовно).
           </p>
         )}
-        {ocr ? (
-          <div className="ocr-progress" role="status">
-            <div className="goal-bar">
-              <div className="goal-bar-fill" style={{ width: `${Math.round(ocr.p * 100)}%` }} />
-            </div>
-            <span className="lg-muted">{stageText[ocr.stage]}</span>
+        <div className="lg-stack">
+          <Button variant="primary" block onClick={() => camera.current?.click()}>
+            📷 Сфотографувати чек
+          </Button>
+          <div className="lg-grid-2">
+            <Button onClick={() => gallery.current?.click()}>З галереї</Button>
+            <Button onClick={() => setEditor({ values: emptyValues(toIsoDate()), issues: [] })}>Ввести вручну</Button>
           </div>
-        ) : (
-          <div className="lg-stack">
-            <Button variant="primary" block onClick={() => camera.current?.click()}>
-              📷 Сфотографувати чек
-            </Button>
-            <div className="lg-grid-2">
-              <Button onClick={() => gallery.current?.click()}>З галереї</Button>
-              <Button onClick={() => setEditor({ values: emptyValues(toIsoDate()), issues: [] })}>Ввести вручну</Button>
-            </div>
-          </div>
-        )}
-        {error && (
-          <div className="ocr-error" role="alert">
-            <p className="form-error">{error.text} Можна ввести цифри вручну — фото збережеться разом із заміром.</p>
-            <Button block onClick={() => {
-              setEditor({ values: emptyValues(toIsoDate()), issues: [], photo: error.photo })
-              setError(null)
-            }}>
-              Ввести вручну з цим фото
-            </Button>
-            <details className="ocr-detail">
-              <summary>Деталі помилки</summary>
-              <code>{error.detail}</code>
-            </details>
-          </div>
-        )}
+        </div>
+        {startError && <p className="form-error" style={{ marginTop: 10 }}>{startError}</p>}
         <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => onFile(e.target.files?.[0])} />
         <input ref={gallery} type="file" accept="image/*" hidden onChange={(e) => onFile(e.target.files?.[0])} />
       </Glass>
+
+      {drafts?.map((d) => <DraftCard key={d.id} draft={d} onReview={() => review(d)} />)}
 
       <Button block onClick={() => setWeighIn(true)}>
         ⚖️ Швидке зважування

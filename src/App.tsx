@@ -8,6 +8,7 @@ import Progress from './pages/Progress.tsx'
 import Settings from './pages/Settings.tsx'
 import Workout from './pages/Workout.tsx'
 import RestTimer from './workout/RestTimer.tsx'
+import ScanToast from './measure/ScanToast.tsx'
 
 export default function App() {
   const location = useLocation()
@@ -34,6 +35,7 @@ export default function App() {
       </main>
       </div>
       <RestTimer />
+      <ScanToast />
       <TabBar />
     </div>
   )
