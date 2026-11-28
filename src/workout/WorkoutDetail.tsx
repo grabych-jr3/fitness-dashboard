@@ -1,8 +1,12 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState } from 'react'
+import { nextTarget } from '../data/queries.ts'
 import type { Workout, WorkoutSet } from '../data/types.ts'
 import { Button, Sheet } from '../glass'
 import { fmt, fmtDate } from '../lib/format.ts'
 import { deleteWorkout, repeatWorkout } from './actions.ts'
+import { PlateauTips, ProgressBadges, targetText } from './Progression.tsx'
+import { fmtSession } from '../progress/progression.ts'
 import { comparisonTrend, fmtComparison, fmtDuration, fmtKg, fmtTime, fmtWeight, weekday, workoutDetail, type ExerciseSummary } from './history.ts'
 import './history.css'
 
@@ -47,6 +51,51 @@ function ExerciseCard({ ex, name }: { ex: ExerciseSummary; name: string }) {
       ) : ex.firstTime ? (
         <p className="wd-prev lg-muted">Перший раз</p>
       ) : null}
+    </section>
+  )
+}
+
+/**
+ * «Наступного разу»: the double-progression target for every exercise of this workout.
+ * Always the current target, so later workouts with the same exercise are taken into account.
+ */
+function NextTime({ workout, exerciseIds, names }: { workout: Workout; exerciseIds: number[]; names: ReadonlyMap<number, string> }) {
+  const [open, setOpen] = useState<number | null>(null)
+  const recs = useLiveQuery(() => Promise.all(exerciseIds.map((id) => nextTarget(id, { templateId: workout.templateId }))), [exerciseIds.join(','), workout.templateId])
+  if (!recs || recs.length === 0) return null
+  return (
+    <section className="wd-next" aria-label="Наступного разу">
+      <h3 className="lg-h2 wd-next-title">Наступного разу</h3>
+      {exerciseIds.map((id, i) => {
+        const rec = recs[i]
+        if (!rec || rec.action === 'first') return null
+        const later = rec.last && rec.last.date > workout.date
+        return (
+          <div key={id} className="prog-row">
+            <button type="button" className="prog-row-top" aria-expanded={open === id} onClick={() => setOpen(open === id ? null : id)}>
+              <span className="prog-row-name">{names.get(id) ?? 'Видалена вправа'}</span>
+              <ProgressBadges rec={rec} />
+            </button>
+            <span className="prog-row-sub">
+              🎯 {targetText(rec)}
+              {later && rec.last && ` · з урахуванням ${fmtDate(rec.last.date)} (${fmtSession(rec.last)})`}
+            </span>
+            {open === id && (
+              <div className="prog-detail">
+                <p>{rec.reason}</p>
+                {rec.plateau && (
+                  <>
+                    <p>
+                      <b>Плато:</b> 3 тренування поспіль на цій вазі без жодного повтору більше. Що спробувати:
+                    </p>
+                    <PlateauTips />
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })}
     </section>
   )
 }
@@ -132,6 +181,8 @@ export default function WorkoutDetail({
               <ExerciseCard key={ex.exerciseId} ex={ex} name={exerciseNames.get(ex.exerciseId) ?? 'Видалена вправа'} />
             ))}
           </div>
+
+          <NextTime workout={w} exerciseIds={detail.exercises.map((e) => e.exerciseId)} names={exerciseNames} />
 
           <Button
             variant="primary"
