@@ -55,3 +55,5 @@
 .wd-delta--same { color: var(--muted); }
 .wd-confirm { margin: 0; text-align: center; }
 .lg-btn.wd-danger { background: linear-gradient(180deg, color-mix(in srgb, var(--bad) 88%, white), var(--bad)); box-shadow: 0 8px 24px color-mix(in srgb, var(--bad) 35%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.45); }
+.wd-next { padding: 14px 16px 6px; border-radius: 20px; background: color-mix(in srgb, var(--accent) 8%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent); }
+.wd-next-title { margin: 0 0 4px; }
